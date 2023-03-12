@@ -1,0 +1,23 @@
+{
+  "?Ct": "代理服务器的配置信息",
+  "Ct": {
+    "?Addr": "代理服务器的地址，如果填写的ip是127.0.0.1，将会在本地启动一个代理服务，注意，这将监听127.0.0.1",
+    "Addr":"",
+    "?Key": "与代理服务器通信的对称密钥，它应该是32位的bytes",
+    "Key": ""
+  },
+  "Config": {
+    "?DeviceName": "注册名，这将在代理服务器上注册该名称，请确保该服务名在代理服务器上是唯一的",
+    "DeviceName": "",
+    "?DeviceType": "设备类型，DeviceTypeServer/DeviceTypeClient",
+    "DeviceType": "",
+    "?Root": "根地址，这将阻止访问者随意访问服务端文件",
+    "Root": "",
+    "?MaxRootSize": "最大的可操作空间，超出的范围将限制部分操作",
+    "MaxRootSize": 0,
+    "?Key": "与服务端通信的通信密钥，它应该是32位的bytes",
+    "Key": "",
+    "?PermissionList": "许可权限列表，限制访问者可进行的操作",
+    "PermissionList": []
+  }
+}

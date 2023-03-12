@@ -1,0 +1,7 @@
+go build -buildmode=c-shared -o cfcfile_api.dll main.go
+
+go build -ldflags "-s -w" -buildmode=c-shared -o cfcfile_api.dll main.go
+
+"-s -w" 选项用于减小生成动态链接库的体积，-s 是压缩，-w 是去掉调试信息
+
+CGO_ENABLED=1  CC="x86_64-w64-mingw32-gcc" GOOS=windows GOARCH=amd64 CGO_LDFLAGS="-static" go build src/main.go
