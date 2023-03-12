@@ -1,7 +1,7 @@
 package cfile
 
 import (
-	"cfcfile/ctool"
+	"github.com/peakedshout/cfc-fileManage/ctool"
 	"github.com/peakedshout/go-CFC/loger"
 	"github.com/peakedshout/go-CFC/tool"
 	"os"

@@ -1,10 +1,10 @@
 package cfile
 
 import (
-	"cfcfile/ctool"
-	"cfcfile/memory"
 	"errors"
 	"fmt"
+	"github.com/peakedshout/cfc-fileManage/ctool"
+	"github.com/peakedshout/cfc-fileManage/memory"
 	"github.com/peakedshout/go-CFC/loger"
 	"github.com/peakedshout/go-CFC/tool"
 	"os"

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"cfcfile/server/serverMain"
 	"flag"
+	"github.com/peakedshout/cfc-fileManage/server/serverMain"
 )
 
 func main() {

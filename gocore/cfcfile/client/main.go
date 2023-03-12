@@ -4,9 +4,9 @@ package main
 //#include "./cfcfile_api2.h"
 import "C"
 import (
-	"cfcfile/cfile"
-	"cfcfile/ctool"
-	"cfcfile/memory"
+	"github.com/peakedshout/cfc-fileManage/cfile"
+	"github.com/peakedshout/cfc-fileManage/ctool"
+	"github.com/peakedshout/cfc-fileManage/memory"
 	"github.com/peakedshout/go-CFC/client"
 	"github.com/peakedshout/go-CFC/tool"
 	"log"

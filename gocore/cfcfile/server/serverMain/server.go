@@ -1,10 +1,10 @@
 package serverMain
 
 import (
-	"cfcfile/cfile"
-	"cfcfile/ctool"
-	"cfcfile/memory"
 	"encoding/json"
+	"github.com/peakedshout/cfc-fileManage/cfile"
+	"github.com/peakedshout/cfc-fileManage/ctool"
+	"github.com/peakedshout/cfc-fileManage/memory"
 	"github.com/peakedshout/go-CFC/client"
 	"github.com/peakedshout/go-CFC/loger"
 	"github.com/peakedshout/go-CFC/server"

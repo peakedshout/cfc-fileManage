@@ -1,7 +1,7 @@
 package cfile
 
 import (
-	"cfcfile/ctool"
+	"github.com/peakedshout/cfc-fileManage/ctool"
 	"github.com/peakedshout/go-CFC/client"
 	"github.com/peakedshout/go-CFC/loger"
 	"github.com/peakedshout/go-CFC/tool"
@@ -69,7 +69,7 @@ func InitRemote(cc *client.DeviceBox, serverName, rawKey string) *FileContext {
 			for {
 				select {
 				case <-tk.C:
-					fc.remote.taskCtx.NewTaskCbCMsg(ctool.Ping, 200, fc.remote.SetCFMsg(nil))
+					fc.remote.taskCtx.NewTaskCbCMsg(ctool.Ping, 200, fc.remote.SetCFMsg(nil)).NowaitCb(nil)
 				case <-fc.remote.stop:
 					return
 				}

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"cfcfile/_test/testcase"
+	"github.com/peakedshout/cfc-fileManage/_test/testcase"
 	"time"
 )
 
