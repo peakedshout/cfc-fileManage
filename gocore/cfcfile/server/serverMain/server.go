@@ -74,19 +74,21 @@ func RunMain(config *cfile.ConfigInfo, ctConfig *ctool.CtConfig) (*client.Device
 					if fc.Err == "" {
 						rid := sm.Set(fc)
 						go func() {
-							select {
-							case <-ping:
-								if sub.SetDeadline(time.Now().Add(20*time.Second)) != nil {
+							for {
+								select {
+								case <-ping:
+									if sub.SetDeadline(time.Now().Add(20*time.Second)) != nil {
+										sm.Del(rid)
+										fc.Close()
+										return
+									}
+									fc.UpdateLocalRootSize()
+								case <-stop:
+									stop <- 1
 									sm.Del(rid)
 									fc.Close()
 									return
 								}
-								fc.UpdateLocalRootSize()
-							case <-stop:
-								stop <- 1
-								sm.Del(rid)
-								fc.Close()
-								return
 							}
 						}()
 						err1 := tc.WriteCMsg(ctool.InitFileA1, cMsg.Id, 200, cfile.SetCFMsg(rid, fc))

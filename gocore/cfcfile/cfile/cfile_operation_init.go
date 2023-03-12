@@ -69,7 +69,11 @@ func InitRemote(cc *client.DeviceBox, serverName, rawKey string) *FileContext {
 			for {
 				select {
 				case <-tk.C:
-					fc.remote.taskCtx.NewTaskCbCMsg(ctool.Ping, 200, fc.remote.SetCFMsg(nil)).NowaitCb(nil)
+					err1 := fc.remote.taskCtx.WriteCMsg(ctool.Ping, "", 200, nil)
+					if err1 != nil {
+						loger.SetLogWarn(err1)
+						return
+					}
 				case <-fc.remote.stop:
 					return
 				}
