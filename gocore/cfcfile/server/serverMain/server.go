@@ -62,6 +62,10 @@ func RunMain(config *cfile.ConfigInfo, ctConfig *ctool.CtConfig) (*client.Device
 			defer func() { stop <- 1 }()
 
 			tc := tool.NewTaskContext(sub, sub.NewKey(config.RawKey))
+			ctx := &handleCtx{
+				tc:  tc,
+				sub: sub,
+			}
 			tc.SetNoCb(func(cMsg tool.ConnMsg) {
 				if cMsg.Header == ctool.UploadFileQ2 {
 					sub.SetInfoLog(cMsg.Header, cMsg.Id, cMsg.Code)
@@ -104,7 +108,7 @@ func RunMain(config *cfile.ConfigInfo, ctConfig *ctool.CtConfig) (*client.Device
 				case ctool.Ping:
 					ping <- 1
 				default:
-					cMsgHandler(tc, cMsg)
+					ctx.cMsgHandler(cMsg)
 				}
 			})
 			err = tc.ReadCMsg()
@@ -121,16 +125,21 @@ func RunMain(config *cfile.ConfigInfo, ctConfig *ctool.CtConfig) (*client.Device
 	return c, nil
 }
 
-func cMsgHandlerPre(tc *tool.TaskCbContext, header string, cMsg tool.ConnMsg) (fc *cfile.FileContext, msg cfile.CFCFileCMsg, err error) {
+type handleCtx struct {
+	tc  *tool.TaskCbContext
+	sub *client.SubBox
+}
+
+func (ctx *handleCtx) cMsgHandlerPre(header string, cMsg tool.ConnMsg) (fc *cfile.FileContext, msg cfile.CFCFileCMsg, err error) {
 	msg, err = cfile.GetCFMsgStep1(cMsg.Data)
 	if err != nil {
-		tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+		ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 		loger.SetLogWarn(err)
 		return nil, msg, err
 	}
 	if msg.Id == "" {
 		err = cfile.ErrFileContextIsNotFound
-		tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+		ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 		if err != nil {
 			loger.SetLogWarn(err)
 		}
@@ -139,7 +148,7 @@ func cMsgHandlerPre(tc *tool.TaskCbContext, header string, cMsg tool.ConnMsg) (f
 	odj, ok := sm.Get(msg.Id)
 	if !ok {
 		err = cfile.ErrFileContextIsNotFound
-		tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+		ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 		if err != nil {
 			loger.SetLogWarn(err)
 		}
@@ -149,7 +158,7 @@ func cMsgHandlerPre(tc *tool.TaskCbContext, header string, cMsg tool.ConnMsg) (f
 	if !ok {
 		sm.Del(msg.Id)
 		err = cfile.ErrFileContextIsNotFound
-		tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+		ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 		if err != nil {
 			loger.SetLogWarn(err)
 		}
@@ -158,11 +167,11 @@ func cMsgHandlerPre(tc *tool.TaskCbContext, header string, cMsg tool.ConnMsg) (f
 	return fc, msg, err
 }
 
-func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
+func (ctx *handleCtx) cMsgHandler(cMsg tool.ConnMsg) (err error) {
 	switch cMsg.Header {
 	case ctool.OpenFileQ1:
 		header := ctool.OpenFileA1
-		fc, msg, err := cMsgHandlerPre(tc, header, cMsg)
+		fc, msg, err := ctx.cMsgHandlerPre(header, cMsg)
 		if err != nil {
 			return err
 		}
@@ -174,14 +183,14 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 			return err
 		}
 		fc.OpenLocal(info)
-		err = tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(fc))
+		err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(fc))
 		if err != nil {
 			loger.SetLogWarn(err)
 			return err
 		}
 	case ctool.CopyFileQ1:
 		header := ctool.CopyFileA1
-		fc, msg, err := cMsgHandlerPre(tc, header, cMsg)
+		fc, msg, err := ctx.cMsgHandlerPre(header, cMsg)
 		if err != nil {
 			return err
 		}
@@ -194,17 +203,17 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 		}
 		err = fc.CopyLocalFileContext(info.Old, info.New, info.Tough)
 		if err != nil {
-			tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+			ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 			return err
 		}
-		err = tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
+		err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
 		if err != nil {
 			loger.SetLogWarn(err)
 			return err
 		}
 	case ctool.MoveFileQ1:
 		header := ctool.MoveFileA1
-		fc, msg, err := cMsgHandlerPre(tc, header, cMsg)
+		fc, msg, err := ctx.cMsgHandlerPre(header, cMsg)
 		if err != nil {
 			return err
 		}
@@ -217,17 +226,17 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 		}
 		err = fc.MoveLocalFileContext(info.Old, info.New, info.Tough)
 		if err != nil {
-			tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+			ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 			return err
 		}
-		err = tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
+		err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
 		if err != nil {
 			loger.SetLogWarn(err)
 			return err
 		}
 	case ctool.RenameFileQ1:
 		header := ctool.RenameFileA1
-		fc, msg, err := cMsgHandlerPre(tc, header, cMsg)
+		fc, msg, err := ctx.cMsgHandlerPre(header, cMsg)
 		if err != nil {
 			return err
 		}
@@ -240,17 +249,17 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 		}
 		err = fc.RenameLocalFileContext(info.Old, info.New, info.Tough)
 		if err != nil {
-			tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+			ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 			return err
 		}
-		err = tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
+		err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
 		if err != nil {
 			loger.SetLogWarn(err)
 			return err
 		}
 	case ctool.RemoveFileQ1:
 		header := ctool.RemoveFileA1
-		fc, msg, err := cMsgHandlerPre(tc, header, cMsg)
+		fc, msg, err := ctx.cMsgHandlerPre(header, cMsg)
 		if err != nil {
 			return err
 		}
@@ -263,17 +272,17 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 		}
 		err = fc.RemoveLocalFileContext(info)
 		if err != nil {
-			tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+			ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 			return err
 		}
-		err = tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
+		err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
 		if err != nil {
 			loger.SetLogWarn(err)
 			return err
 		}
 	case ctool.MkDirFileQ1:
 		header := ctool.MkDirFileA1
-		fc, msg, err := cMsgHandlerPre(tc, header, cMsg)
+		fc, msg, err := ctx.cMsgHandlerPre(header, cMsg)
 		if err != nil {
 			return err
 		}
@@ -286,17 +295,17 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 		}
 		err = fc.MkDirLocalFileContext(info)
 		if err != nil {
-			tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+			ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 			return err
 		}
-		err = tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
+		err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
 		if err != nil {
 			loger.SetLogWarn(err)
 			return err
 		}
 	case ctool.FileInfoQ1:
 		header := ctool.FileInfoA1
-		fc, msg, err := cMsgHandlerPre(tc, header, cMsg)
+		fc, msg, err := ctx.cMsgHandlerPre(header, cMsg)
 		if err != nil {
 			return err
 		}
@@ -309,17 +318,17 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 		}
 		data, err := fc.GetFileInfo(info)
 		if err != nil {
-			tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+			ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 			return err
 		}
-		err = tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(data))
+		err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(data))
 		if err != nil {
 			loger.SetLogWarn(err)
 			return err
 		}
 	case ctool.ReadFileQ1:
 		header := ctool.ReadFileA1
-		fc, msg, err := cMsgHandlerPre(tc, header, cMsg)
+		fc, msg, err := ctx.cMsgHandlerPre(header, cMsg)
 		if err != nil {
 			return err
 		}
@@ -332,17 +341,17 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 		}
 		b, err := fc.ReadLocalFileContext(info, true)
 		if err != nil {
-			tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+			ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 			return err
 		}
-		err = tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(tool.MustBytesToBase64(b).Data))
+		err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(tool.MustBytesToBase64(b).Data))
 		if err != nil {
 			loger.SetLogWarn(err)
 			return err
 		}
 	case ctool.DownloadFileQ1:
 		header := ctool.DownloadFileA1
-		fc, msg, err := cMsgHandlerPre(tc, header, cMsg)
+		fc, msg, err := ctx.cMsgHandlerPre(header, cMsg)
 		if err != nil {
 			return err
 		}
@@ -353,16 +362,24 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 			loger.SetLogWarn(err)
 			return err
 		}
+		err = ctx.sub.SetDeadline(time.Time{})
+		if err != nil {
+			loger.SetLogWarn(err)
+			return err
+		}
+		defer func() {
+			ctx.sub.SetDeadline(time.Now().Add(10 * time.Second))
+		}()
 		data, stop, errChan := fc.ReadFileToSend(info.Path, info.Offset, info.Limit)
 		r := true
 		for r {
 			select {
 			case err := <-errChan:
 				r = false
-				tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+				ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 			case b, ok := <-data:
 				if ok {
-					err = tc.WriteCMsg(header, cMsg.Id, 100, msg.SetCFMsg(b))
+					err = ctx.tc.WriteCMsg(header, cMsg.Id, 100, msg.SetCFMsg(b))
 					if err != nil {
 						stop <- 1
 						r = false
@@ -370,7 +387,7 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 						return err
 					}
 				} else {
-					err = tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
+					err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
 					if err != nil {
 						stop <- 1
 						r = false
@@ -383,7 +400,7 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 		}
 	case ctool.UploadFileQ1:
 		header := ctool.UploadFileA1
-		fc, msg, err := cMsgHandlerPre(tc, header, cMsg)
+		fc, msg, err := ctx.cMsgHandlerPre(header, cMsg)
 		if err != nil {
 			return err
 		}
@@ -396,17 +413,17 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 		}
 		result, err := fc.NewOrCheckUpFile(info)
 		if err != nil {
-			tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+			ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 			return err
 		}
-		err = tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(result))
+		err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(result))
 		if err != nil {
 			loger.SetLogWarn(err)
 			return err
 		}
 	case ctool.UploadFileQ2:
 		header := ctool.UploadFileA2
-		fc, msg, err := cMsgHandlerPre(tc, header, cMsg)
+		fc, msg, err := ctx.cMsgHandlerPre(header, cMsg)
 		if err != nil {
 			return err
 		}
@@ -420,29 +437,34 @@ func cMsgHandler(tc *tool.TaskCbContext, cMsg tool.ConnMsg) (err error) {
 		over := cMsg.Code == 200
 		err = fc.ReceiveDataToWrite(info, over)
 		if err != nil {
-			tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
+			ctx.tc.WriteCMsg(header, cMsg.Id, 400, err.Error())
 			return err
 		}
 		if over {
-			err = tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
+			err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
 			if err != nil {
 				loger.SetLogWarn(err)
 				return err
 			}
 		} else {
-			err = tc.WriteCMsg(header, cMsg.Id, 100, msg.SetCFMsg(info.Offset))
+			err = ctx.tc.WriteCMsg(header, cMsg.Id, 100, msg.SetCFMsg(info.Offset))
 			if err != nil {
 				loger.SetLogWarn(err)
 				return err
 			}
 		}
+		err = ctx.sub.SetDeadline(time.Now().Add(10 * time.Second))
+		if err != nil {
+			loger.SetLogWarn(err)
+			return err
+		}
 	case ctool.StatusQ1:
 		header := ctool.StatusA1
-		fc, msg, err := cMsgHandlerPre(tc, header, cMsg)
+		fc, msg, err := ctx.cMsgHandlerPre(header, cMsg)
 		if err != nil {
 			return err
 		}
-		err = tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(fc.GetRootSize()))
+		err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(fc.GetRootSize()))
 		if err != nil {
 			loger.SetLogWarn(err)
 			return err

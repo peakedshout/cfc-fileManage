@@ -1,4 +1,4 @@
 github.com/gofrs/uuid v4.3.1+incompatible h1:0/KbAdpx3UXAx1kEOWHJeOkpbgRFGHVgv+CFIY7dBJI=
 github.com/gofrs/uuid v4.3.1+incompatible/go.mod h1:b2aQJv3Z4Fp6yNu3cdSllBxTCLRxnplIgP/c0N/04lM=
-github.com/peakedshout/go-CFC v1.3.1 h1:4cLQOfqU/D0ySn4rrksB4YiubbeMl83A5nyIWQ2AiJ4=
-github.com/peakedshout/go-CFC v1.3.1/go.mod h1:mJjX6jVQVD7M6LAshuseMCT8A4tEZYrjKLdwrs+ZnjE=
+github.com/peakedshout/go-CFC v1.3.2 h1:YSTPRwBEq0oA21YBsFWrYG0h8Ubqb4GNlOfzZE44KO8=
+github.com/peakedshout/go-CFC v1.3.2/go.mod h1:mJjX6jVQVD7M6LAshuseMCT8A4tEZYrjKLdwrs+ZnjE=
