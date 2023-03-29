@@ -15,4 +15,6 @@ func main() {
 	testcase.Test04Up()
 	time.Sleep(1 * time.Second)
 	testcase.Test05UpAndStop()
+	time.Sleep(1 * time.Second)
+	testcase.Test06Log()
 }

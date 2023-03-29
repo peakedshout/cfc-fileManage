@@ -107,6 +107,8 @@ extern __declspec(dllexport) char* MkDirLocalFileContext(CFC_FileContext_t fc, G
 extern __declspec(dllexport) char* ReadLocalFileContext(CFC_FileContext_t fc, GoString path, GoInt64 offset, GoInt limit);
 extern __declspec(dllexport) void CloseFileContext(CFC_FileContext_t fc);
 extern __declspec(dllexport) void FreeString(char* c);
+extern __declspec(dllexport) char* LogListen(GoInt port);
+extern __declspec(dllexport) void LogOpt(GoUint8 level, GoUint8 stack);
 
 #ifdef __cplusplus
 }

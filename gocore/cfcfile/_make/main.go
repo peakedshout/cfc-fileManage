@@ -23,7 +23,32 @@ func main() {
 	makeConfig()
 	makeAllBin()
 	makeCGO()
+	logMake()
 }
+func logMake() {
+	var err error
+	logPath := "../cflog_client/main.go"
+	outPath := "./asset/LogDial-win-amd64" + "/cfc_fileManageApp_logdialer.exe"
+	_, err = os.Stat(logPath)
+	errCheck(err)
+	var cmd *exec.Cmd
+	var b []byte
+	cleanGoEnv()
+	err = os.Setenv("CGO_ENABLED", "0")
+	errCheck(err)
+	err = os.Setenv("GOOS", "windows")
+	errCheck(err)
+	err = os.Setenv("GOARCH", "amd64")
+	errCheck(err)
+	cmd = exec.Command("go", "build", "-o", outPath, logPath)
+	cmd.Env = append(os.Environ())
+	b, err = cmd.CombinedOutput()
+	fmt.Println("log", "win", "amd64", string(b), err)
+	errCheck(err)
+	err = os.Chmod(outPath, 0777)
+	errCheck(err)
+}
+
 func errCheck(err error) {
 	if err != nil {
 		loger.SetLogError(err)

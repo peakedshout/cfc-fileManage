@@ -5,6 +5,7 @@ package main
 import "C"
 import (
 	"github.com/peakedshout/cfc-fileManage/cfile"
+	"github.com/peakedshout/cfc-fileManage/cflog"
 	"github.com/peakedshout/cfc-fileManage/ctool"
 	"github.com/peakedshout/cfc-fileManage/memory"
 	"github.com/peakedshout/go-CFC/client"
@@ -20,6 +21,7 @@ func main() {
 func init() {
 	memory.Init()
 	memory.InitGF()
+	cflog.Init()
 }
 
 //export InitCFC
@@ -430,4 +432,18 @@ func CloseFileContext(fc C.CFC_FileContext_t) {
 //export FreeString
 func FreeString(c *C.char) {
 	C.free(unsafe.Pointer(c))
+}
+
+//export LogListen
+func LogListen(port int) *C.char {
+	err := cflog.Listen(port)
+	if err != nil {
+		return C.CString(ctool.MustMarshal(err))
+	}
+	return nil
+}
+
+//export LogOpt
+func LogOpt(level uint8, stack bool) {
+	cflog.Opt(level, stack)
 }
