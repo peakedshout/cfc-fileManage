@@ -9,6 +9,8 @@ import (
 
 func Test04Up() {
 	loger.SetLoggerLevel(loger.LogLevelError)
+	testPrint("Test04Up")
+	defer testPrint("Test04Up")
 	ctx := NewCtx()
 	defer ctx.CloseAll()
 	op, err := ctx.fc.NewTaskUpFile(path.Join(clientpath, upFileName), path.Join("", upFileName), true, 0)

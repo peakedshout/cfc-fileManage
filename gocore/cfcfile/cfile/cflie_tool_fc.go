@@ -2,6 +2,7 @@ package cfile
 
 import (
 	"github.com/peakedshout/cfc-fileManage/ctool"
+	"github.com/peakedshout/go-CFC/client"
 	"github.com/peakedshout/go-CFC/loger"
 	"github.com/peakedshout/go-CFC/tool"
 	"os"
@@ -9,6 +10,27 @@ import (
 	"strings"
 	"time"
 )
+
+func loginCheck(sub *client.SubBox, userName, rawKey string) error {
+	err := sub.WriteCMsg(ctool.LoginQ1, "", 200, CFCLoginReq{
+		LoginName: userName,
+		LoginKey:  rawKey,
+	})
+	if err != nil {
+		return err
+	}
+	err = sub.ReadCMsgCb(func(cMsg tool.ConnMsg) (bool, error) {
+		err1 := cMsg.CheckConnMsgHeaderAndCode(ctool.LoginA1, 200)
+		if err1 != nil {
+			return false, err
+		}
+		return false, nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 // 本地获取文件信息
 func (fc *FileContext) GetFileInfo(p string) (info FileDetailInfo, err error) {

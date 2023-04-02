@@ -11,13 +11,24 @@
     "DeviceName": "",
     "?DeviceType": "设备类型，DeviceTypeServer/DeviceTypeClient",
     "DeviceType": "",
-    "?Root": "根地址，这将阻止访问者随意访问服务端文件",
-    "Root": "",
-    "?MaxRootSize": "最大的可操作空间，超出的范围将限制部分操作",
-    "MaxRootSize": 0,
-    "?Key": "与服务端通信的通信密钥，它应该是32位的bytes",
-    "Key": "",
-    "?PermissionList": "许可权限列表，限制访问者可进行的操作",
-    "PermissionList": []
+    "UserConfigs": [
+      {
+        "?UserName": "登陆的用户",
+        "UserName": "",
+        "?UserKey": "与服务端通信的通信密钥，它应该是32位的bytes",
+        "UserKey": "",
+        "?Root": "根地址，这将阻止访问者随意访问服务端文件",
+        "Root": "",
+        "?MaxRootSize": "最大的可操作空间，超出的范围将限制部分操作",
+        "MaxRootSize": 0,
+        "?PermissionList": "许可权限列表，限制访问者可进行的操作",
+        "PermissionList": []
+      }
+    ]
+  },
+  "Setting": {
+    "ReLinkTime": "",
+    "LogLevel": 0,
+    "LogStack": false
   }
 }

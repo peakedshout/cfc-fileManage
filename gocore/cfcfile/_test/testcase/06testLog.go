@@ -8,6 +8,8 @@ import (
 )
 
 func Test06Log() {
+	testPrint("Test06Log")
+	defer testPrint("Test06Log")
 	cflog.Init()
 	cflog.Opt(loger.LogLevelDebug, false)
 	err := cflog.Listen(11111)

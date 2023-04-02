@@ -25,6 +25,7 @@ type ConfigInfo struct {
 	MaxRootSize    int64
 	RootSizeErr    string //root计算错误时会有
 	rootSizeLock   sync.Mutex
+	UserName       string
 	RawKey         string `json:"-"`
 	PermissionList []string
 }
@@ -188,3 +189,11 @@ type CFCFileCMsg struct {
 }
 
 // -消息-
+
+// -登陆-
+type CFCLoginReq struct {
+	LoginName string
+	LoginKey  string
+}
+
+// -登陆-

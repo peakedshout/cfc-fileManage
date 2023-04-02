@@ -8,11 +8,14 @@ import (
 	"github.com/peakedshout/go-CFC/client"
 	"github.com/peakedshout/go-CFC/loger"
 	"github.com/peakedshout/go-CFC/server"
+	"log"
 	"math/rand"
 	"os"
 	"path"
 	"time"
 )
+
+const testUserName = "testUser"
 
 const key1 = "6a647c0bf889419c84e461486f83d776"
 const key2 = "edcbf56a029f4a3b901916a3e03dd316"
@@ -100,30 +103,47 @@ func NewCtx() *testCtx {
 	tc.ps = server.NewProxyServer(proxyAddr, key1)
 	time.Sleep(1 * time.Second)
 
-	serverConfig := &cfile.ConfigInfo{
-		DeviceName:     serverName,
-		DeviceType:     cfile.DeviceTypeServer,
-		Root:           serverpath,
-		RootSize:       0,
-		MaxRootSize:    1 * 1024 * 1024 * 1024,
-		RootSizeErr:    "",
-		RawKey:         key2,
-		PermissionList: cfile.PermissionToAll,
+	config := ctool.ServerConfig{
+		Ct: ctool.CtConfig{
+			Addr: proxyAddr,
+			Key:  key1,
+		},
+		Config: ctool.BaseConfig{
+			DeviceName: serverName,
+			DeviceType: cfile.DeviceTypeServer,
+			UserConfigs: []ctool.UserConfig{
+				{
+					UserName:       testUserName,
+					UserKey:        key2,
+					Root:           serverpath,
+					MaxRootSize:    1 * 1024 * 1024 * 1024,
+					PermissionList: cfile.PermissionToAll,
+				},
+			},
+		},
 	}
-	proxyConfig := &ctool.CtConfig{
-		Addr: proxyAddr,
-		Key:  key1,
-	}
-	s, err := serverMain.RunMain(serverConfig, proxyConfig)
+	s, err := serverMain.RunTest(config)
 	errCheck(err)
 	tc.serverBox = s
 	c, err := client.LinkProxyServer(clientName, proxyAddr, key1)
 	errCheck(err)
 	tc.clientBox = c
 
-	tc.fc = cfile.InitRemote(tc.clientBox, serverName, key2)
+	tc.fc = cfile.InitRemote(tc.clientBox, serverName, testUserName, key2)
 	if tc.fc.Err != "" {
 		loger.SetLogError(tc.fc.Err)
 	}
 	return tc
+}
+
+var testCount int
+
+func testPrint(str string) {
+	switch testCount % 2 {
+	case 0:
+		log.Println("cfc _test : ", str, "----- start	------------------------------")
+	case 1:
+		log.Println("cfc _test : ", str, "----- end	------------------------------")
+	}
+	testCount++
 }

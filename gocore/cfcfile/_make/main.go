@@ -40,7 +40,7 @@ func logMake() {
 	errCheck(err)
 	err = os.Setenv("GOARCH", "amd64")
 	errCheck(err)
-	cmd = exec.Command("go", "build", "-o", outPath, logPath)
+	cmd = exec.Command("go", "build", "-ldflags", "-s -w", "-o", outPath, logPath)
 	cmd.Env = append(os.Environ())
 	b, err = cmd.CombinedOutput()
 	fmt.Println("log", "win", "amd64", string(b), err)
@@ -126,7 +126,7 @@ func makeBin(goos, arch string) {
 
 	errCheck(err)
 	s := getOutPath(goos, arch)
-	cmd = exec.Command("go", "build", "-o", s, serverPath)
+	cmd = exec.Command("go", "build", "-ldflags", "-s -w", "-o", s, serverPath)
 	cmd.Env = append(os.Environ())
 	b, err = cmd.CombinedOutput()
 	fmt.Println("s", goos, arch, string(b), err)

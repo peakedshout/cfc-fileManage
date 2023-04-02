@@ -224,6 +224,12 @@ func (fc *FileContext) StartTaskDownFile(p string, tough bool) (err error) {
 	}
 	defer sub.Close()
 
+	err = loginCheck(sub, fc.Config.UserName, tf.Key)
+	if err != nil {
+		loger.SetLogWarn(err)
+		return err
+	}
+
 	defer func() {
 		memory.FDel(p)
 	}()

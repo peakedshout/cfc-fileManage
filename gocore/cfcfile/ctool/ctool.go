@@ -6,6 +6,9 @@ import (
 )
 
 const (
+	LoginQ1 = "LoginQ1"
+	LoginA1 = "LoginA1"
+
 	InitFileQ1 = "InitFileQ1"
 	InitFileA1 = "InitFileA1"
 	OpenFileQ1 = "OpenFileQ1"

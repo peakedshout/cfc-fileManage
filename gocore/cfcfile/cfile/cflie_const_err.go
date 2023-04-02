@@ -10,6 +10,8 @@ import (
 )
 
 var (
+	ErrLoginUserErr = errors.New("login user name or key is err")
+
 	ErrRootPathRangeOut          = errors.New("path range out") //root path range out
 	ErrDeviceType                = errors.New("unexpected device type")
 	ErrComputeStorage            = errors.New("compute storage exception")

@@ -11,44 +11,56 @@ import (
 	"github.com/peakedshout/go-CFC/tool"
 	"net"
 	"os"
+	"sync"
 	"time"
 )
+
+var userLock sync.Mutex
+var userM map[string]*cfile.ConfigInfo
+
+func init() {
+	userM = make(map[string]*cfile.ConfigInfo)
+}
 
 func RunAll(cp string) {
 	info := readConfig(cp)
 	checkConfig(info)
-	addr, err := net.ResolveTCPAddr("tcp", info.Ct.Addr)
-	if err != nil {
-		loger.SetLogError("bad config")
+	if info.Setting.LogLevel == 0 {
+		info.Setting.LogLevel = loger.LogLevelWarn
 	}
-	if addr.IP.String() == "127.0.0.1" {
-		s := server.NewProxyServer(info.Ct.Addr, info.Ct.Key)
-		defer s.Close()
-		time.Sleep(1 * time.Second)
-	}
-	config := &cfile.ConfigInfo{
-		DeviceName:     info.Config.DeviceName,
-		DeviceType:     info.Config.DeviceType,
-		Root:           info.Config.Root,
-		RootSize:       0,
-		MaxRootSize:    info.Config.MaxRootSize,
-		RawKey:         info.Config.Key,
-		PermissionList: info.Config.PermissionList,
-	}
-	c, err := RunMain(config, &info.Ct)
+	loger.SetLoggerLevel(info.Setting.LogLevel)
+	loger.SetLoggerStack(info.Setting.LogStack)
+
+	err := tool.ReRun(info.Setting.ReLinkTime, func() {
+		addr, err := net.ResolveTCPAddr("tcp", info.Ct.Addr)
+		if err != nil {
+			loger.SetLogError("bad config")
+		}
+		if addr.IP.String() == "127.0.0.1" {
+			s := server.NewProxyServer(info.Ct.Addr, info.Ct.Key)
+			defer s.Close()
+			time.Sleep(1 * time.Second)
+		}
+
+		c, err := RunMain(info.Config, &info.Ct)
+		if err != nil {
+			loger.SetLogWarn(err)
+			return
+		}
+		defer c.Close()
+		c.Wait()
+	})
 	if err != nil {
 		loger.SetLogError(err)
 	}
-	defer c.Close()
-	c.Wait()
 }
 
 var sm *memory.SMemory
 
-func RunMain(config *cfile.ConfigInfo, ctConfig *ctool.CtConfig) (*client.DeviceBox, error) {
+func RunMain(bconfig ctool.BaseConfig, ctConfig *ctool.CtConfig) (*client.DeviceBox, error) {
 	sm = memory.InitS()
 
-	c, err := client.LinkProxyServer(config.DeviceName, ctConfig.Addr, ctConfig.Key)
+	c, err := client.LinkProxyServer(bconfig.DeviceName, ctConfig.Addr, ctConfig.Key)
 	if err != nil {
 		loger.SetLogWarn(err)
 		return nil, err
@@ -57,6 +69,37 @@ func RunMain(config *cfile.ConfigInfo, ctConfig *ctool.CtConfig) (*client.Device
 		err = c.ListenSubBox(func(sub *client.SubBox) {
 			defer sub.Close()
 			sub.SetDeadline(time.Now().Add(20 * time.Second))
+			var config *cfile.ConfigInfo
+			err = sub.ReadCMsgCb(func(cMsg tool.ConnMsg) (bool, error) {
+				err1 := cMsg.CheckConnMsgHeaderAndCode(ctool.LoginQ1, 200)
+				if err1 != nil {
+					return false, err
+				}
+				var info cfile.CFCLoginReq
+				err1 = cMsg.Unmarshal(&info)
+				if err1 != nil {
+					return false, err1
+				}
+				u, ok := getUserM(info.LoginName)
+				if !ok {
+					err1 = cfile.ErrLoginUserErr
+					return false, err1
+				}
+				if u.RawKey != info.LoginKey {
+					err1 = cfile.ErrLoginUserErr
+					return false, err1
+				}
+				config = u
+				return false, nil
+			})
+			if err != nil {
+				sub.WriteCMsg(ctool.LoginA1, "", 400, err.Error())
+				return
+			}
+			err = sub.WriteCMsg(ctool.LoginA1, "", 200, nil)
+			if err != nil {
+				return
+			}
 			ping := make(chan uint8, 1)
 			stop := make(chan uint8, 1)
 			defer func() { stop <- 1 }()
@@ -489,24 +532,69 @@ func checkConfig(info ctool.ServerConfig) {
 	if info.Ct.Addr == "" || len(info.Ct.Key) != 32 {
 		loger.SetLogError("bad config")
 	}
-	if info.Config.DeviceName == "" || len(info.Config.Key) != 32 {
+	if info.Config.DeviceName == "" {
 		loger.SetLogError("bad config")
 	}
 	if info.Config.DeviceType == cfile.DeviceTypeServer {
-		if info.Config.Root == "" {
-			loger.SetLogError("bad config")
-		}
-		m := make(map[string]bool)
-		for _, one := range cfile.PermissionToAll {
-			m[one] = true
-		}
-		for _, one := range info.Config.PermissionList {
-			if !m[one] {
-				loger.SetLogError("bad config")
+		for _, one := range info.Config.UserConfigs {
+			if one.UserName == "" || len(one.UserKey) != 32 {
+				loger.SetLogError("bad user config", one.UserName, one.UserKey)
 			}
+			_, err := os.Stat(one.Root)
+			if one.Root == "" || err != nil {
+				loger.SetLogError("bad root config", one.Root, err)
+			}
+			if one.MaxRootSize < 0 {
+				loger.SetLogError("bad MaxRootSize config", one.MaxRootSize)
+			}
+			checkPermissionList(one.PermissionList)
+
+			config := &cfile.ConfigInfo{
+				DeviceName:     info.Config.DeviceName,
+				DeviceType:     info.Config.DeviceType,
+				Root:           one.Root,
+				RootSize:       0,
+				MaxRootSize:    one.MaxRootSize,
+				UserName:       one.UserName,
+				RawKey:         one.UserKey,
+				PermissionList: one.PermissionList,
+			}
+			setUserM(one.UserName, config)
 		}
 	} else if info.Config.DeviceType == cfile.DeviceTypeClient {
 	} else {
 		loger.SetLogError("bad config")
 	}
+}
+
+func checkPermissionList(l []string) {
+	m := make(map[string]bool)
+	for _, one := range cfile.PermissionToAll {
+		m[one] = true
+	}
+	for _, one := range l {
+		if !m[one] {
+			loger.SetLogError("bad config", l, "not found:", one)
+		}
+	}
+}
+
+func setUserM(name string, config *cfile.ConfigInfo) {
+	userLock.Lock()
+	defer userLock.Unlock()
+	userM[name] = config
+}
+func getUserM(name string) (*cfile.ConfigInfo, bool) {
+	userLock.Lock()
+	defer userLock.Unlock()
+	config, ok := userM[name]
+	return config, ok
+}
+func RunTest(info ctool.ServerConfig) (*client.DeviceBox, error) {
+	checkConfig(info)
+	c, err := RunMain(info.Config, &info.Ct)
+	if err != nil {
+		loger.SetLogError(err)
+	}
+	return c, nil
 }

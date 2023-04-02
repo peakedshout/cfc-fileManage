@@ -9,12 +9,18 @@ import (
 
 func Test05UpAndStop() {
 	loger.SetLoggerLevel(loger.LogLevelError)
+	testPrint("Test05UpAndStop")
+	defer testPrint("Test05UpAndStop")
 	ctx := NewCtx()
 	defer ctx.CloseAll()
 	op, err := ctx.fc.NewTaskUpFile(path.Join(clientpath, upFileName), path.Join("", upFileName), true, 0)
 	errCheck(err)
+	var r = true
+	defer func() {
+		r = false
+	}()
 	go func() {
-		for {
+		for r {
 			p, err := ctx.fc.GetTransmissionTaskProgress(op)
 			fmt.Println(p, err)
 			time.Sleep(100 * time.Millisecond)

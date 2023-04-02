@@ -11,7 +11,7 @@ import (
 )
 
 // 初始化远程
-func InitRemote(cc *client.DeviceBox, serverName, rawKey string) *FileContext {
+func InitRemote(cc *client.DeviceBox, serverName, userName, rawKey string) *FileContext {
 	fc := &FileContext{
 		Id:      0,
 		Current: "",
@@ -36,6 +36,14 @@ func InitRemote(cc *client.DeviceBox, serverName, rawKey string) *FileContext {
 		loger.SetLogWarn(err)
 		return fc
 	}
+
+	err = loginCheck(sub, userName, rawKey)
+	if err != nil {
+		fc.Err = err.Error()
+		loger.SetLogWarn(err)
+		return fc
+	}
+
 	fc.remote.sub = sub
 	fc.remote.key = sub.NewKey(rawKey)
 	fc.remote.taskCtx = tool.NewTaskContext(fc.remote.sub, fc.remote.key)

@@ -4,6 +4,7 @@ package main
 //#include "./cfcfile_api2.h"
 import "C"
 import (
+	"github.com/peakedshout/cfc-fileManage/cfconst"
 	"github.com/peakedshout/cfc-fileManage/cfile"
 	"github.com/peakedshout/cfc-fileManage/cflog"
 	"github.com/peakedshout/cfc-fileManage/ctool"
@@ -53,14 +54,15 @@ func Close(c C.CFC_ClientContext_t) {
 }
 
 //export InitRemoteFileContext
-func InitRemoteFileContext(c C.CFC_ClientContext_t, name, key string) *C.char {
+func InitRemoteFileContext(c C.CFC_ClientContext_t, deviceName, userName, userKey string) *C.char {
 	a, ok := memory.Get(int64(c))
 	if !ok {
 		panic("memory not found CFC_ClientContext_t")
 	}
-	n := strings.Clone(name)
-	k := strings.Clone(key)
-	f := cfile.InitRemote(a.(*client.DeviceBox), n, k)
+	dn := strings.Clone(deviceName)
+	un := strings.Clone(userName)
+	uk := strings.Clone(userKey)
+	f := cfile.InitRemote(a.(*client.DeviceBox), dn, un, uk)
 	if f.Err == "" {
 		id := memory.Set(f)
 		f.Id = id
@@ -446,4 +448,19 @@ func LogListen(port int) *C.char {
 //export LogOpt
 func LogOpt(level uint8, stack bool) {
 	cflog.Opt(level, stack)
+}
+
+//export GetVersionInfo
+func GetVersionInfo() *C.char {
+	return C.CString(cfconst.GetVersion())
+}
+
+//export GetAddr
+func GetAddr() *C.char {
+	return C.CString(cfconst.GetAddr())
+}
+
+//export GetAbout
+func GetAbout() *C.char {
+	return C.CString(cfconst.GetAbout())
 }

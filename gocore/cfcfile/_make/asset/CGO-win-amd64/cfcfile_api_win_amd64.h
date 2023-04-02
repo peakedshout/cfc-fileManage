@@ -81,7 +81,7 @@ extern "C" {
 
 extern __declspec(dllexport) char* InitCFC(GoString name, GoString addr, GoString key);
 extern __declspec(dllexport) void Close(CFC_ClientContext_t c);
-extern __declspec(dllexport) char* InitRemoteFileContext(CFC_ClientContext_t c, GoString name, GoString key);
+extern __declspec(dllexport) char* InitRemoteFileContext(CFC_ClientContext_t c, GoString deviceName, GoString userName, GoString userKey);
 extern __declspec(dllexport) char* OpenRemoteFileContext(CFC_FileContext_t fc, GoString path);
 extern __declspec(dllexport) char* GetRemoteStatusFileContext(CFC_FileContext_t fc);
 extern __declspec(dllexport) char* DownRemoteFileContextToNewTask(CFC_FileContext_t fc, GoString path, GoString out, GoUint8 tough, GoInt sizeBuff);
@@ -109,6 +109,9 @@ extern __declspec(dllexport) void CloseFileContext(CFC_FileContext_t fc);
 extern __declspec(dllexport) void FreeString(char* c);
 extern __declspec(dllexport) char* LogListen(GoInt port);
 extern __declspec(dllexport) void LogOpt(GoUint8 level, GoUint8 stack);
+extern __declspec(dllexport) char* GetVersionInfo();
+extern __declspec(dllexport) char* GetAddr();
+extern __declspec(dllexport) char* GetAbout();
 
 #ifdef __cplusplus
 }

@@ -6,6 +6,8 @@ import (
 
 func Test01Init() {
 	loger.SetLoggerLevel(loger.LogLevelError)
+	testPrint("Test01Init")
+	defer testPrint("Test01Init")
 	ctx := NewCtx()
 	defer ctx.CloseAll()
 	ctx.fc.OpenRemote("./")
