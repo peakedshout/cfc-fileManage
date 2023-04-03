@@ -29,6 +29,14 @@
 - 安装服务端（服务端设备）
   - 填写config文件，[这里](./gocore/cfcfile/config/config.json)获取
   - PermissionList填写：PermissionLink     | 许可连接//基本   | PermissionOpen     | 许可访问文件//基本 | PermissionUpload   | 许可上传       | PermissionCopy     | 许可复制       | PermissionMove     | 许可剪切       | PermissionRename   | 许可重命名      | PermissionMkDir    | 许可创建文件夹    | PermissionRemove   | 许可删除       | PermissionDownload | 许可下载       | PermissionRead     | 许可读取
-  - 运行cfc_fileManageApp_server -c config.json
+  - 运行 cfc_fileManageApp_server -c config.json
 - 运行客户端（qt）
-  - 运行exe，填写如下信息：
+  - 运行exe，根据服务端填写的信息填写如下信息：
+    - 代理服务器：代理服务器所在的ip和端口
+    - 代理名称：服务端在代理服务器上注册的名称，它应该是唯一的
+    - 代理密钥：与代理服务器通信的对称密钥
+    - 用户名称：服务端准备的用户账号的名称
+    - 用户密钥：该用户加密通信的对称密钥
+    - 本地目录、扫描目录、下载目录，按需选择即可
+- 遇到bug或问题？
+  - 请提交issues
