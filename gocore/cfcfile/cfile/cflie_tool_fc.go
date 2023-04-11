@@ -32,6 +32,14 @@ func loginCheck(sub *client.SubBox, userName, rawKey string) error {
 	return nil
 }
 
+func (fc *FileContext) rootPathTrim(p string) string {
+	if fc.Config.DeviceType == DeviceTypeServer {
+		return strings.TrimPrefix(path.Clean(p), fc.Config.Root)
+	} else {
+		return p
+	}
+}
+
 // 本地获取文件信息
 func (fc *FileContext) GetFileInfo(p string) (info FileDetailInfo, err error) {
 	err = fc.CheckPermission([]string{PermissionLink, PermissionOpen})

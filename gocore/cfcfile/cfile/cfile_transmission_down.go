@@ -2,7 +2,6 @@ package cfile
 
 import (
 	"errors"
-	"fmt"
 	"github.com/peakedshout/cfc-fileManage/ctool"
 	"github.com/peakedshout/cfc-fileManage/memory"
 	"github.com/peakedshout/go-CFC/loger"
@@ -49,6 +48,7 @@ func (fc *FileContext) NewTaskDownFile(p, o string, tough bool, sizeBuff int) (i
 		RemotePath: gopath,
 		LocalPath:  outPath,
 		ServerName: fc.remote.odjName,
+		UserName:   fc.remote.userName,
 		Key:        fc.remote.key.GetRawKey(),
 		SizeBuff:   sizeBuff,
 		IsUp:       false,
@@ -74,7 +74,7 @@ func (fc *FileContext) StartTaskDownFile(p string, tough bool) (err error) {
 	defer func() {
 		t2 := time.Now().Sub(t1)
 		s := t2.Seconds()
-		fmt.Println("StartTaskDownFile Used:", t2, "AvgSpeed:", FormatFileSize(int64(speed/s))+"/s")
+		loger.SetLogInfo("StartTaskDownFile Used:", t2, "AvgSpeed:", FormatFileSize(int64(speed/s))+"/s")
 	}()
 	if fc.remote == nil || fc.remote.sub == nil {
 		err = ErrFcNotRemote
@@ -88,6 +88,18 @@ func (fc *FileContext) StartTaskDownFile(p string, tough bool) (err error) {
 		loger.SetLogWarn(err)
 		return err
 	}
+
+	if tf.ServerName != fc.remote.odjName {
+		err = ErrServerNameIsInconsistency
+		loger.SetLogWarn(err)
+		return err
+	}
+	if tf.UserName != fc.remote.userName {
+		err = ErrUserNameIsInconsistency
+		loger.SetLogWarn(err)
+		return err
+	}
+
 	//状态处理
 	stopcb := false
 	defer func() {
@@ -113,13 +125,8 @@ func (fc *FileContext) StartTaskDownFile(p string, tough bool) (err error) {
 		}
 	}()
 
-	if tf.ServerName != fc.remote.odjName {
-		err = ErrServerNameIsInconsistency
-		loger.SetLogWarn(err)
-		return err
-	}
 	stat, err := os.Stat(getCFCDownloadFile(tf.LocalPath))
-	if err != nil {
+	if err != nil || stat == nil {
 		if os.IsNotExist(err) { //如果下载文件不存在，重置
 			tf.Reset()
 			err = tf.SetStatus(DownStatusDownloadReset)
@@ -140,7 +147,8 @@ func (fc *FileContext) StartTaskDownFile(p string, tough bool) (err error) {
 			return err
 		}
 	}
-	if stat.Size() != tf.Size || tough {
+	size := stat.Size()
+	if size != tf.Size || tough {
 		if tough { //重置
 			tf.Reset()
 			err = tf.SetStatus(DownStatusDownloadReset)

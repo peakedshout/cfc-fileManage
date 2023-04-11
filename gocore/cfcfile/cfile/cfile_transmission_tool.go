@@ -35,6 +35,7 @@ func NewTransmissionFileTaskInfo(info FileDetailInfo, req NewTransmissionFileTas
 		FileName:   info.FileName,
 		Size:       info.Size,
 		ModTime:    info.ModTime,
+		UserName:   req.UserName,
 		ServerName: req.ServerName,
 		Key:        req.Key,
 		RemotePath: req.RemotePath,
@@ -228,6 +229,11 @@ func (fc *FileContext) GetTransmissionTaskProgress(path string) (info Transmissi
 		loger.SetLogWarn(err)
 		return info, err
 	}
+	if tf.UserName != fc.remote.userName {
+		err = ErrUserNameIsInconsistency
+		loger.SetLogWarn(err)
+		return info, err
+	}
 	info = TransmissionFileTaskInfoProgress{
 		FileName:     tf.FileName,
 		Type:         tf.Type,
@@ -271,6 +277,8 @@ func (fc *FileContext) ScanAllCFCInfo(p string, ignoreErr bool) (resp []ScanCFCI
 				info.ErrMsg = err.Error()
 			} else if df.ServerName != fc.remote.odjName {
 				info.ErrMsg = ErrServerNameIsInconsistency.Error()
+			} else if df.UserName != fc.remote.userName {
+				info.ErrMsg = ErrUserNameIsInconsistency.Error()
 			} else {
 				if filepath.Ext(path) == ".CFCDownload_info" {
 					info.DownInfoPath = path

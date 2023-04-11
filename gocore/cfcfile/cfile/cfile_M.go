@@ -31,12 +31,13 @@ type ConfigInfo struct {
 }
 
 type RemoteInfo struct {
-	odjName string //local is nil
-	key     tool.Key
-	rid     string
-	sub     *client.SubBox
-	cc      *client.DeviceBox
-	stop    chan uint8
+	odjName  string //local is nil
+	userName string //local is nil
+	key      tool.Key
+	rid      string
+	sub      *client.SubBox
+	cc       *client.DeviceBox
+	stop     chan uint8
 
 	subMap  map[string]map[int]*client.SubBox
 	subLock sync.Mutex
@@ -110,6 +111,7 @@ type NewTransmissionFileTaskInfoReq struct {
 	RemotePath string
 	LocalPath  string
 	ServerName string
+	UserName   string
 	Key        string
 	SizeBuff   int
 	IsUp       bool
@@ -130,6 +132,7 @@ type TransmissionFileTaskInfo struct {
 	Size       int64
 	ModTime    string
 	ServerName string
+	UserName   string
 	Key        string
 	RemotePath string
 	LocalPath  string

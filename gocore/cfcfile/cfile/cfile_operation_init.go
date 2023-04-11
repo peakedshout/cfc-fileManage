@@ -17,6 +17,7 @@ func InitRemote(cc *client.DeviceBox, serverName, userName, rawKey string) *File
 		Current: "",
 		remote: &RemoteInfo{
 			odjName:    serverName,
+			userName:   userName,
 			key:        tool.Key{},
 			rid:        "",
 			sub:        nil,

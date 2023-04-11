@@ -2,11 +2,9 @@ package cfile
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"runtime/debug"
 )
 
 var (
@@ -23,6 +21,7 @@ var (
 	ErrBadPattern                = filepath.ErrBadPattern
 	ErrFcNotRemote               = errors.New("fc is not remote")
 	ErrServerNameIsInconsistency = errors.New("serverName is inconsistency")
+	ErrUserNameIsInconsistency   = errors.New("userName is inconsistency")
 	ErrFileIsModified            = errors.New("file is modified")
 	ErrFileHashCheckFailed       = errors.New("file hash does not match. File transfer failed")
 	ErrTransmissionType          = errors.New("unexpected transmission type")
@@ -42,7 +41,7 @@ func osIsErr(err error) error {
 			return one
 		}
 	}
-	fmt.Println("errOs:", err, string(debug.Stack()))
+	//fmt.Println("errOs:", err, string(debug.Stack()))
 	return ErrOsUnexpected
 }
 
@@ -57,6 +56,6 @@ func ioIsErr(err error) error {
 			return one
 		}
 	}
-	fmt.Println("errIs:", err, string(debug.Stack()))
+	//fmt.Println("errIs:", err, string(debug.Stack()))
 	return ErrIoUnexpected
 }

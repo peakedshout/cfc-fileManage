@@ -61,7 +61,14 @@ func (ri *RemoteInfo) GetSubSpeed(key ...string) [][]tool.NetworkSpeedView {
 func (ri *RemoteInfo) GetAllSubSpeed() tool.NetworkSpeedView {
 	ri.subLock.Lock()
 	defer ri.subLock.Unlock()
-	return ri.sub.GetAllNetworkSpeedView()
+	var sl []tool.NetworkSpeedView
+	for _, one := range ri.subMap {
+		for _, two := range one {
+			sl = append(sl, two.GetAllNetworkSpeedView())
+		}
+	}
+	sl = append(sl, ri.sub.GetAllNetworkSpeedView())
+	return tool.CountAllNetworkSpeedView(sl...)
 }
 
 func (ri *RemoteInfo) SetCFMsg(data any) CFCFileCMsg {

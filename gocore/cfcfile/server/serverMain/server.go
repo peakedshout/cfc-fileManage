@@ -11,6 +11,7 @@ import (
 	"github.com/peakedshout/go-CFC/tool"
 	"net"
 	"os"
+	"path"
 	"sync"
 	"time"
 )
@@ -67,6 +68,12 @@ func RunMain(bconfig ctool.BaseConfig, ctConfig *ctool.CtConfig) (*client.Device
 	}
 	go func() {
 		err = c.ListenSubBox(func(sub *client.SubBox) {
+			defer func() {
+				err0 := recover()
+				if err0 != nil {
+					loger.SetLogWarn(err0)
+				}
+			}()
 			defer sub.Close()
 			sub.SetDeadline(time.Now().Add(20 * time.Second))
 			var config *cfile.ConfigInfo
@@ -486,19 +493,19 @@ func (ctx *handleCtx) cMsgHandler(cMsg tool.ConnMsg) (err error) {
 		if over {
 			err = ctx.tc.WriteCMsg(header, cMsg.Id, 200, msg.SetCFMsg(nil))
 			if err != nil {
-				loger.SetLogWarn(err)
+				loger.SetLogInfo(err)
 				return err
 			}
 		} else {
 			err = ctx.tc.WriteCMsg(header, cMsg.Id, 100, msg.SetCFMsg(info.Offset))
 			if err != nil {
-				loger.SetLogWarn(err)
+				loger.SetLogInfo(err)
 				return err
 			}
 		}
 		err = ctx.sub.SetDeadline(time.Now().Add(10 * time.Second))
 		if err != nil {
-			loger.SetLogWarn(err)
+			loger.SetLogInfo(err)
 			return err
 		}
 	case ctool.StatusQ1:
@@ -544,6 +551,11 @@ func checkConfig(info ctool.ServerConfig) {
 			if one.Root == "" || err != nil {
 				loger.SetLogError("bad root config", one.Root, err)
 			}
+			root := path.Clean(one.Root)
+			_, err = os.Stat(root)
+			if err != nil {
+				loger.SetLogError("bad root config", one.Root, err)
+			}
 			if one.MaxRootSize < 0 {
 				loger.SetLogError("bad MaxRootSize config", one.MaxRootSize)
 			}
@@ -552,7 +564,7 @@ func checkConfig(info ctool.ServerConfig) {
 			config := &cfile.ConfigInfo{
 				DeviceName:     info.Config.DeviceName,
 				DeviceType:     info.Config.DeviceType,
-				Root:           one.Root,
+				Root:           root,
 				RootSize:       0,
 				MaxRootSize:    one.MaxRootSize,
 				UserName:       one.UserName,

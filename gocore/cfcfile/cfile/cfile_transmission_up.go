@@ -2,7 +2,6 @@ package cfile
 
 import (
 	"errors"
-	"fmt"
 	"github.com/peakedshout/cfc-fileManage/ctool"
 	"github.com/peakedshout/cfc-fileManage/memory"
 	"github.com/peakedshout/go-CFC/loger"
@@ -49,6 +48,7 @@ func (fc *FileContext) NewTaskUpFile(p, o string, tough bool, sizeBuff int) (inf
 		RemotePath: outPath,
 		LocalPath:  gopath,
 		ServerName: fc.remote.odjName,
+		UserName:   fc.remote.userName,
 		Key:        fc.remote.key.GetRawKey(),
 		SizeBuff:   sizeBuff,
 		IsUp:       true,
@@ -68,7 +68,7 @@ func (fc *FileContext) StartTaskUpFile(p string, tough bool) (err error) {
 	defer func() {
 		t2 := time.Now().Sub(t1)
 		s := t2.Seconds()
-		fmt.Println("StartTaskUpFile Used:", t2, "AvgSpeed:", FormatFileSize(int64(speed/s))+"/s")
+		loger.SetLogInfo("StartTaskUpFile Used:", t2, "AvgSpeed:", FormatFileSize(int64(speed/s))+"/s")
 	}()
 	if fc.remote == nil || fc.remote.sub == nil {
 		err = ErrFcNotRemote
@@ -79,6 +79,17 @@ func (fc *FileContext) StartTaskUpFile(p string, tough bool) (err error) {
 	tf, err := ReadTransmissionFileTaskInfo(p, fc.remote.key.GetRawKey())
 	if err != nil {
 		err = errors.New("parsing failure1 :" + err.Error())
+		loger.SetLogWarn(err)
+		return err
+	}
+
+	if tf.ServerName != fc.remote.odjName {
+		err = ErrServerNameIsInconsistency
+		loger.SetLogWarn(err)
+		return err
+	}
+	if tf.UserName != fc.remote.userName {
+		err = ErrUserNameIsInconsistency
 		loger.SetLogWarn(err)
 		return err
 	}
@@ -107,12 +118,6 @@ func (fc *FileContext) StartTaskUpFile(p string, tough bool) (err error) {
 			}
 		}
 	}()
-
-	if tf.ServerName != fc.remote.odjName {
-		err = ErrServerNameIsInconsistency
-		loger.SetLogWarn(err)
-		return err
-	}
 
 	info, err := fc.GetFileInfo(tf.LocalPath)
 	if err != nil {
@@ -324,7 +329,7 @@ func (fc *FileContext) NewOrCheckUpFile(ufi UpFileDetailInfo) (reset bool, err e
 
 	if !ufi.Check {
 		if !ufi.Tough && checkLocalFileIsExist(ufi.FilePath) {
-			err = errors.New("file is exist: " + ufi.FilePath)
+			err = errors.New("file is exist: " + fc.rootPathTrim(ufi.FilePath))
 			loger.SetLogWarn(err)
 			return reset, err
 		}
@@ -335,7 +340,7 @@ func (fc *FileContext) NewOrCheckUpFile(ufi UpFileDetailInfo) (reset bool, err e
 		}
 	} else {
 		stat, err := os.Stat(getCFCUploadFile(ufi.FilePath))
-		if err != nil {
+		if err != nil || stat == nil {
 			if os.IsNotExist(err) { //如果下载文件不存在，重置
 				reset = true
 				err = MakeZeroFile(getCFCUploadFile(ufi.FilePath), int(ufi.Size))
@@ -344,13 +349,18 @@ func (fc *FileContext) NewOrCheckUpFile(ufi UpFileDetailInfo) (reset bool, err e
 					loger.SetLogWarn(err)
 					return reset, err
 				}
+				stat, err = os.Stat(getCFCUploadFile(ufi.FilePath))
+				if err != nil || stat == nil {
+					return reset, errors.New("remote parsing failure x :" + osIsErr(err).Error())
+				}
 			} else {
 				err = errors.New("remote parsing failure :" + osIsErr(err).Error())
 				loger.SetLogWarn(err)
 				return reset, err
 			}
 		}
-		if stat.Size() != ufi.Size || ufi.Tough {
+		size := stat.Size()
+		if size != ufi.Size || ufi.Tough {
 			if ufi.Tough { //重置
 				reset = true
 				err = MakeZeroFile(getCFCUploadFile(ufi.FilePath), int(ufi.Size))
@@ -401,7 +411,8 @@ func (fc *FileContext) ReceiveDataToWrite(info UploadFileDataReq, over bool) (er
 		loger.SetLogWarn(err)
 		return err
 	}
-	if s.Size() != info.Size {
+	size := s.Size()
+	if size != info.Size {
 		err = errors.New("upload write bad: Unexpected file")
 		loger.SetLogWarn(err)
 		return err
@@ -415,7 +426,7 @@ func (fc *FileContext) ReceiveDataToWrite(info UploadFileDataReq, over bool) (er
 				return err
 			}
 			if h != info.Hash {
-				fmt.Println("hash check err:", h, info.Hash)
+				loger.SetLogInfo("hash check err:", h, info.Hash)
 				os.Remove(getCFCUploadFile(info.FilePath))
 				err = ErrFileHashCheckFailed
 				loger.SetLogWarn(err)
