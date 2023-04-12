@@ -1,4 +1,4 @@
-#ifndef LOCALFILEMANAGEMAINWIN_H
+﻿#ifndef LOCALFILEMANAGEMAINWIN_H
 #define LOCALFILEMANAGEMAINWIN_H
 
 #include <QMainWindow>
@@ -10,13 +10,12 @@
 #include "SessionMsg/SessionMsg.h"
 
 extern SessionMsg giv_SessionMsg;
-//#define DEBUG
 
-#ifdef DEBUG
+//#define LOCALFILEMANAGEMAINWIN_DEBUG
+
+#ifdef LOCALFILEMANAGEMAINWIN_DEBUG
 #include <QDebug>
 #define debugMsg(msg) qDebug()<< "-----------------[Debug]-----------------\nFile: " << __FILE__ << "\nFunc: " << __FUNCTION__ << "\nLine: " << __LINE__ << "\n--[Msg]--> " << msg << "\n-----------------[Debug/]-----------------\n"
-#else
-#define debugMsg(msg)
 #endif
 
 namespace Ui {
@@ -100,6 +99,10 @@ signals:
     void sigDebugMsg(const QString &msg);
 
     void sigUpload(const QMap<QString, QString> &uploadFiles, const QString &clientPath);
+
+    void sigAddDownloadFiles(const QStringList &list);
+    void sigAddUpFiles(const QStringList &list);
+
 private:
     Ui::LocalFileManageMainWin *ui;
 
@@ -112,7 +115,7 @@ private:
     QAction *m_ActionOpen;
     QAction *m_ActionRename;
 
-    QString m_ServerName;
+    QString m_ClientName;
 
     QStringList m_ActionsStr;
 

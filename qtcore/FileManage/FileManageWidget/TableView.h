@@ -1,4 +1,4 @@
-#ifndef TABLEVIEW_H
+﻿#ifndef TABLEVIEW_H
 #define TABLEVIEW_H
 
 #include <QTableView>
@@ -11,9 +11,9 @@
 #include <QDrag>
 #include <QHeaderView>
 
-//#define DEBUG
+//#define  TABLEVIEW_DEBUG
 
-#ifdef DEBUG
+#ifdef  TABLEVIEW_DEBUG
 #include <QDebug>
 #define debugMsg(msg) qDebug()<< "-----------------[Debug]-----------------\nFile: " << __FILE__ << "\nFunc: " << __FUNCTION__ << "\nLine: " << __LINE__ << "\n--[Msg]--> " << msg << "\n-----------------[Debug/]-----------------\n"
 #else

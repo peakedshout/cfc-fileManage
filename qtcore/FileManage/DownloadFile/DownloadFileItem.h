@@ -1,8 +1,9 @@
-#ifndef DOWNLOADFILEITEM_H
+﻿#ifndef DOWNLOADFILEITEM_H
 #define DOWNLOADFILEITEM_H
 
 #include <QFrame>
 #include "RewriteApi/CFCFileApiParse.h"
+#include <QMessageBox>
 
 namespace Ui {
 class DownloadFileItem;
@@ -25,9 +26,12 @@ private slots:
     void on_pushButton_switch_clicked();
     void on_pushButton_cancel_clicked();
 
+    void on_pushButton_ReDownload_clicked();
+
 signals:
-    void sigDownloadState(const QString &path, bool running);
-    void sigCancel(const QString &path);
+    void sigDownloadState(QString path, bool running);
+    void sigCancel(QString path);
+    void sigReset(QString from, QString to);
 private:
     Ui::DownloadFileItem *ui;
 

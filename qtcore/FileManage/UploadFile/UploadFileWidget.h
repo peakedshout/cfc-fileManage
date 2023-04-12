@@ -1,4 +1,4 @@
-#ifndef UPLOADFILEWIDGET_H
+﻿#ifndef UPLOADFILEWIDGET_H
 #define UPLOADFILEWIDGET_H
 
 #include <QWidget>
@@ -31,10 +31,10 @@ class UploadFileWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit UploadFileWidget(int fc, const QString &serverName, QWidget *parent = nullptr);
+    explicit UploadFileWidget(int fc, const QString &clientName, QWidget *parent = nullptr);
     ~UploadFileWidget();
 
-
+    void setfc(int fc);
 private:
     bool createUploadTask(QString path, bool buff);
     void createItemAndProgressTask(QString path);
@@ -47,12 +47,15 @@ public slots:
     void slotUploadFilesInfo(const QMap<QString, QString> &paths, bool clear = false);
     void on_pushButton_Upload_clicked();
 
+    void slotAddUploadFiles(const QStringList &upFiles);
 private slots:
     void on_pushButton_SeleteFile_clicked();
 
     void on_pushButton_Cancel_clicked();
 
     void slotCancel(QString path);
+
+    void slotReset(QString from, QString to);
 
     void slotUploadState(QString path, bool running);
 
@@ -66,7 +69,7 @@ signals:
 private:
     Ui::UploadFileWidget *ui;
     int m_fc;
-    QString m_ServerName;
+    QString m_ClientName;
 
     QString m_ClientPath;
     QString m_ServerPath;

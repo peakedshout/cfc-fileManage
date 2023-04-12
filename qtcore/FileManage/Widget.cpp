@@ -1,11 +1,15 @@
 ﻿#include "Widget.h"
 #include "ui_Widget.h"
+#include "RewriteApi/cfcfile_api_win_amd64.h"
 
 Widget::Widget(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::Widget)
 {
     ui->setupUi(this);
+
+    QString title = GetVersionInfo();
+    setWindowTitle(title);
 
     m_TrayMenu = nullptr;            //系统托盘右键菜单项
     m_SystemTray = nullptr;   //系统托盘图标
@@ -36,6 +40,7 @@ Widget::Widget(QWidget *parent) :
 
 Widget::~Widget()
 {
+    giv_SessionMsg.recover();
     giv_SessionMsg.wirteSessionMsg();
     delete ui;
 }
@@ -101,24 +106,54 @@ void Widget::tabWidgetTabClose(const QString &name)
 
 }
 
-void Widget::slotCreateTabWidget(int fc, const QString &currPath, const QString &serverName, const QString &ipAndPort)
+void Widget::slotCreateTabWidget(int fc, const QString &currPath, const QString &clientName, const QString &ipAndPort, const SessionInfo &info)
 {
-    FileManageWidget *fileManageWidget = new FileManageWidget(fc, serverName, currPath, this);
+    FileManageWidget *fileManageWidget = new FileManageWidget(fc, clientName, currPath, info,  this);
 
     connect(fileManageWidget, &FileManageWidget::sigCreate, this, &Widget::sigLogin);
     connect(fileManageWidget, &FileManageWidget::sigQuit, this, [=](const QString &name){
         emit sigQuit(name);
         tabWidgetTabClose(name);
     });
+    connect(fileManageWidget, &FileManageWidget::sigReConnection, this, &Widget::sigReConnection);
+    connect(fileManageWidget, &FileManageWidget::sigCloseFc, this, &Widget::sigCloseFc);
 
-    if(m_Map.contains(serverName)) {
-        m_Map.value(serverName)->deleteLater();
+
+    if(m_Map.contains(clientName)) {
+        m_Map.value(clientName)->deleteLater();
     }
-    m_Map.insert(serverName, fileManageWidget);
-    m_LoginInfoMap.insert(serverName, ipAndPort);
+    m_Map.insert(clientName, fileManageWidget);
+    m_LoginInfoMap.insert(clientName, ipAndPort);
 
-    ui->tabWidget->insertTab(0, fileManageWidget, serverName);
-    ui->tabWidget->setCurrentIndex(0);
+    QString name = clientName;
+    for(int i = 0; i < ui->tabWidget->count(); ++i) {
+        if(ui->tabWidget->tabText(i) == clientName) {
+            QStringList res = ipAndPort.split("_");
+            if(res.size() > 2) {
+                name = res.at(2) + "_" + name;
+                for(int i = 0; i < ui->tabWidget->count(); ++i) {
+                    if(ui->tabWidget->tabText(i) == name) {
+                        QStringList res = ipAndPort.split("_");
+                        if(res.size() > 0) {
+                            name = res.at(0) + "_" + name;
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+    }
+
+    ui->tabWidget->insertTab(0, fileManageWidget, name);
+    QMetaObject::invokeMethod(ui->tabWidget, "setCurrentIndex", Qt::QueuedConnection,
+                              Q_ARG(int, 0));
+}
+
+void Widget::slotReconSucceed(const QString &clientName, const SessionInfo &pSessionInfo, int fc)
+{
+    if(m_Map.value(clientName))
+        m_Map.value(clientName)->slotReconSucceed(clientName, pSessionInfo, fc);
 }
 
 
@@ -165,7 +200,7 @@ void Widget::creatSystemTray()
 
     //为系统托盘设置菜单为m_pTrayMennu
     m_SystemTray->setContextMenu(m_TrayMenu);
-    m_SystemTray->setIcon(QIcon(":/logo.ico"));
+    m_SystemTray->setIcon(QIcon(":/png/cfloge.png"));
 
     m_SystemTray->show();
 }

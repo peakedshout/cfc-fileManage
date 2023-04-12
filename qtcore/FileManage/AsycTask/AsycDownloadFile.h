@@ -1,9 +1,10 @@
-#ifndef ASYCDOWNLOADFILE_H
+﻿#ifndef ASYCDOWNLOADFILE_H
 #define ASYCDOWNLOADFILE_H
 
 #include <QObject>
 #include <QRunnable>
 #include <QThreadPool>
+//#include <QMessageBox>
 
 //#define DEBUG
 
@@ -26,7 +27,7 @@ private:
     void run();
 
 signals:
-
+    void sigDebug(QString text, QString path);
 private:
     int m_fc;
     QString m_Path;

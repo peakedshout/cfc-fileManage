@@ -1,17 +1,19 @@
-#include "UploadFileWidget.h"
+﻿#include "UploadFileWidget.h"
 #include "ui_UploadFileWidget.h"
 #include "RewriteApi/GoStr.h"
 #include "RewriteApi/ScanCFCFile.h"
 #include "UploadFileItem.h"
 
-UploadFileWidget::UploadFileWidget(int fc, const QString &serverName, QWidget *parent) :
+UploadFileWidget::UploadFileWidget(int fc, const QString &clientName, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::UploadFileWidget)
 {
     ui->setupUi(this);
 
     m_fc = fc;
-    m_ServerName = serverName;
+    m_ClientName = clientName;
+
+    this->setWindowTitle("上传");
 
     m_SeleteFilesModel = new QStringListModel(ui->listView_FileList);
     ui->listView_FileList->setEditTriggers(QListView::NoEditTriggers);			//不能编辑
@@ -28,6 +30,11 @@ UploadFileWidget::~UploadFileWidget()
     delete ui;
 }
 
+void UploadFileWidget::setfc(int fc)
+{
+    m_fc = fc;
+}
+
 bool UploadFileWidget::createUploadTask(QString path, bool buff)
 {
     path.remove(".CFCUpload_info");
@@ -42,7 +49,7 @@ bool UploadFileWidget::createUploadTask(QString path, bool buff)
         task->deleteLater();
     }
 
-    AsycUploadFile *asycUploadFile = new AsycUploadFile(m_fc, path, !buff);
+    AsycUploadFile *asycUploadFile = new AsycUploadFile(m_fc, path, buff);
     m_UploadTasks.insert(path, asycUploadFile);
 
     m_ThreadPool.start(asycUploadFile);
@@ -74,6 +81,7 @@ void UploadFileWidget::createItemAndProgressTask(QString path)
     item->setSizeHint(QSize(0, 100));
     UploadFileItem *uploadFileItem = new UploadFileItem(ui->listWidget);
     connect(uploadFileItem, &UploadFileItem::sigCancel, this, &UploadFileWidget::slotCancel);
+    connect(uploadFileItem, &UploadFileItem::sigReset, this, &UploadFileWidget::slotReset);
     connect(uploadFileItem, &UploadFileItem::sigUploadState, this, &UploadFileWidget::slotUploadState);
 
     connect(getProgress, &AsycGetProgress::sigDownloadFileProgress, uploadFileItem, &UploadFileItem::slotDownloadProgress);
@@ -161,7 +169,7 @@ void UploadFileWidget::on_pushButton_Cancel_clicked()
 void UploadFileWidget::on_pushButton_Upload_clicked()
 {
     if(!m_SeleteFilesModel) return;
-    m_ThreadPool.setMaxThreadCount(giv_SessionMsg.sessions.value(m_ServerName).uploadNum*2);
+    m_ThreadPool.setMaxThreadCount(giv_SessionMsg.sessions.value(m_ClientName).uploadNum*2);
 
 //    ui->pushButton_Upload->setEnabled(false);
     QStringList &&uploadList = m_UploadFiles.keys();
@@ -171,7 +179,9 @@ void UploadFileWidget::on_pushButton_Upload_clicked()
         QString var = uploadList.at(i);
         QFileInfo fileInfo(var);
 
-        const QStringList &&scanList = ScanCFCFile::scanCFCFile(m_fc, fileInfo.dir().path(), ScanCFCFile::Upload);
+        const QStringList &&scanList = ScanCFCFile::scanCFCFile(m_fc, giv_SessionMsg.sessions.value(m_ClientName).scanPath, ScanCFCFile::Upload);
+
+        QString p = var.mid(var.lastIndexOf('/')+1);
 
         QString upload = var;
         if(upload.lastIndexOf(".CFCUpload_info") == -1) {
@@ -179,7 +189,6 @@ void UploadFileWidget::on_pushButton_Upload_clicked()
         }
 
         bool &&buff = scanList.contains(upload);
-        QString p = var.mid(var.lastIndexOf('/')+1);
 
         if(!buff) {
             GoStr path(var);
@@ -213,6 +222,17 @@ void UploadFileWidget::on_pushButton_Upload_clicked()
     m_UploadFiles.clear();
 }
 
+void UploadFileWidget::slotAddUploadFiles(const QStringList &upFiles)
+{
+    this->show();
+    this->activateWindow();
+    foreach (const QString &var, upFiles) {
+        if(createUploadTask(var, true)) {
+            createItemAndProgressTask(var);
+        }
+    }
+}
+
 void UploadFileWidget::slotCancel(QString path)
 {
     path.remove(".CFCUpload_info");
@@ -242,6 +262,17 @@ void UploadFileWidget::slotCancel(QString path)
             delete item;
         }
         m_UploadFileItems.remove(path);
+    }
+}
+
+void UploadFileWidget::slotReset(QString from, QString to)
+{
+    GoStr path(from);
+    GoStr serverPath(to);
+    QSharedPointer<char> msg1(UpRemoteFileContextToNewTask(m_fc, path.getGoString(), serverPath.getGoString(), true, 0));
+    if(!QString(msg1.data()).contains("\"ErrMsg\":\"\"")) {
+        QMessageBox::critical(this, "上传重置情况", QString("上传重置错误(%1)").arg(msg1.data()));
+        return;
     }
 }
 
@@ -280,8 +311,9 @@ void UploadFileWidget::on_pushButton_DeleteItem_clicked()
 
     QModelIndexList selIndexs = ui->listView_FileList->selectionModel()->selectedRows();
     foreach (const QModelIndex& index, selIndexs) {
+        QString key = m_SeleteFilesModel->index(index.row()).data().toString();
         m_SeleteFilesModel->removeRow(index.row());
-        m_UploadFiles.remove(index.data().toString());
+        m_UploadFiles.remove(key);
     }
 }
 

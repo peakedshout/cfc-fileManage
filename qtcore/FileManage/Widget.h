@@ -40,12 +40,15 @@ private slots:
     void slotTabWidgetTabBarClicked(int index);
 
 public slots:
-    void slotCreateTabWidget(int fc, const QString &currPath, const QString &serverName, const QString &ipAndPort);
+    void slotCreateTabWidget(int fc, const QString &currPath, const QString &serverName, const QString &ipAndPort, const SessionInfo &info);
 
+    void slotReconSucceed(const QString &clientName, const SessionInfo &pSessionInfo, int fc);
 signals:
     void sigLogin();
 
     void sigQuit(const QString &ipAndPort);
+    void sigCloseFc(int fc);
+    void sigReConnection(const SessionInfo &pSessionInfo, bool isExit_C);
 private:
     Ui::Widget *ui;
 

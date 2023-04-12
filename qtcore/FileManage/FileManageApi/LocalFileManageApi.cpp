@@ -1,4 +1,4 @@
-#include "LocalFileManageApi.h"
+﻿#include "LocalFileManageApi.h"
 
 LocalFileManageApi::LocalFileManageApi()
 {
@@ -74,6 +74,7 @@ bool LocalFileManageApi::copyDir(const QString &oldPath, const QString &newPath,
     foreach(const QFileInfo& fileInfo, fileInfoList)
     {
         if(fileInfo.fileName() == "." || fileInfo.fileName() == "..") continue;
+
         if(fileInfo.isFile()) {
             copyFile(fileInfo.filePath(), destDir.filePath(fileInfo.fileName()), state);
         } else if(fileInfo.isDir()) {
@@ -132,9 +133,22 @@ void LocalFileManageApi::readerDir(const QString &path, QStandardItemModel *mode
         QFileInfoList fileInfoList = QDir(path).entryInfoList();
         int count = -1;
         for(const QFileInfo& info : fileInfoList) {
-            if(info.fileName() == "" || info.fileName() == "." || info.fileName() == "..") continue;
+//            if(info.fileName() == "" || info.fileName() == "." || info.fileName() == "..") continue;
+
+            if(info.fileName() == "" || info.fileName() == ".") continue;
 
             count++;
+            if(info.fileName() == "..") {
+                item = new QStandardItem(QIcon(":/png/dir.png"), info.fileName());
+                model->setItem(count, 0, item);
+                item = new QStandardItem();
+                model->setItem(count, 1, item);
+                item = new QStandardItem();
+                model->setItem(count, 2, item);
+                item = new QStandardItem();
+                model->setItem(count, 3, item);
+                continue;
+            }
 
             QFileInfo fileInfo(info.fileName());
             QString suffix = fileInfo.suffix();
@@ -145,7 +159,6 @@ void LocalFileManageApi::readerDir(const QString &path, QStandardItemModel *mode
             }
 
             item = new QStandardItem(QIcon(info.isDir()? ":/png/dir.png" : fileIconStr), info.fileName());
-//            item->setCheckable(true);
             model->setItem(count, 0, item);
 
             item = new QStandardItem(info.lastModified().toString("yyyy/MM/dd hh:mm"));

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>ScanCFCFileWidget</class>
- <widget class="QWidget" name="ScanCFCFileWidget">
+ <widget class="QDialog" name="ScanCFCFileWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -50,7 +50,7 @@
      <item>
       <widget class="QPushButton" name="pushButton_AddList">
        <property name="text">
-        <string>加入列表</string>
+        <string>执行任务</string>
        </property>
       </widget>
      </item>

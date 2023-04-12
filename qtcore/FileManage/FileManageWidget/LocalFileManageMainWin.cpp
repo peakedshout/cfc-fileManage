@@ -1,7 +1,7 @@
-#include "LocalFileManageMainWin.h"
+﻿#include "LocalFileManageMainWin.h"
 #include "ui_LocalFileManageMainWin.h"
 
-LocalFileManageMainWin::LocalFileManageMainWin(const QString &serverName, QWidget *parent) :
+LocalFileManageMainWin::LocalFileManageMainWin(const QString &clientName, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::LocalFileManageMainWin)
 {
@@ -20,15 +20,15 @@ LocalFileManageMainWin::LocalFileManageMainWin(const QString &serverName, QWidge
 
     createContextMenu();
 
-    m_ServerName = serverName;
+    m_ClientName = clientName;
     // 设置本地路径
-    QString p = giv_SessionMsg.sessions.value(m_ServerName).localPath;
+    QString p = giv_SessionMsg.sessions.value(m_ClientName).localPath;
     ui->lineEdit->setText(p);
     ui->tableView->setPath(p);
 
     // 创建menu--Actions
     m_ActionsStr << "上一级目录" << "刷新" << "打开" << "复制"
-                 << "粘贴" << "剪切" << "删除" << "重命名" << "上传" << "打印信息";
+                 << "粘贴" << "剪切" << "删除" << "重命名" << "上传";
 
     for(auto &var : m_ActionsStr) {
         ui->menubar->addAction(var);
@@ -78,6 +78,7 @@ LocalFileManageMainWin::LocalFileManageMainWin(const QString &serverName, QWidge
     ui->tableView->setColumnWidth(1, 160);
     ui->tableView->setColumnWidth(2, 90);
     ui->tableView->setColumnWidth(3, 80);
+
 
     // statusBar
     m_LabelMsg = new QLabel(" 请选择项目");
@@ -221,6 +222,27 @@ void LocalFileManageMainWin::slotOpen()
 
         emit sigDebugMsg(QString("[打开文件夹]：%1").arg(path));
     } else {
+
+        QString &&typeStr = typeIndex.data().toString();
+        if(typeStr.contains("CFCDOWNLOAD_FILE") || typeStr.contains("CFCUPLOAD_FILE")) return;
+        if(typeStr.contains("CFCDOWNLOAD_INFO")) {
+            emit sigAddDownloadFiles(QStringList() << path);
+            return;
+        }
+
+        if(typeStr.contains("CFCUPLOAD_INFO")) {
+            emit sigAddUpFiles(QStringList() << path);
+            return;
+        }
+
+
+        QString name(nameIndex.data().toString());
+        if(name == "..") {
+            slotParentDir();
+            return;
+        }
+
+
         m_LocalFileManageApi.open(path);
 
         emit sigDebugMsg(QString("[打开文件]：%1").arg(path));

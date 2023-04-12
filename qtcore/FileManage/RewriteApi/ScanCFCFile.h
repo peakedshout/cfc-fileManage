@@ -1,9 +1,10 @@
-#ifndef SCANCFCFILE_H
+﻿#ifndef SCANCFCFILE_H
 #define SCANCFCFILE_H
 
 #include <QStringList>
 #include "GoStr.h"
 #include "CFCFileApiParse.h"
+#include <QDir>
 
 class ScanCFCFile {
 public:
@@ -24,8 +25,8 @@ public:
         QStringList downloadFiles;
         for(auto &var : contexts) {
             if(var.errMsg.isEmpty()) {
-                if(var.downloadPath.isEmpty()) downloadFiles << var.downloadPath;
-                if(var.upPath.isEmpty()) uploadFiles << var.upPath;
+                if(!var.downloadPath.isEmpty()) downloadFiles << QDir::cleanPath(var.downloadPath);
+                if(!var.upPath.isEmpty()) uploadFiles << QDir::cleanPath(var.upPath);
             }
         }
         if(type == Download) {

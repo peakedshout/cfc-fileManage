@@ -1,4 +1,4 @@
-#ifndef ASYCGETPROGRESS_H
+﻿#ifndef ASYCGETPROGRESS_H
 #define ASYCGETPROGRESS_H
 
 #include <QObject>
@@ -7,9 +7,9 @@
 #include <QFileInfo>
 #include "RewriteApi/CFCFileApiParse.h"
 
-//#define DEBUG
+//#define ASYCGETPROGRESS_DEBUG
 
-#ifdef DEBUG
+#ifdef ASYCGETPROGRESS_DEBUG
 #include <QDebug>
 #define debugMsg(msg) qDebug()<< "-----------------[Debug]-----------------\nFile: " << __FILE__ << "\nFunc: " << __FUNCTION__ << "\nLine: " << __LINE__ << "\n--[Msg]--> " << msg << "\n-----------------[Debug/]-----------------\n"
 #else

@@ -1,8 +1,9 @@
-#ifndef UPLOADFILEITEM_H
+﻿#ifndef UPLOADFILEITEM_H
 #define UPLOADFILEITEM_H
 
 #include <QFrame>
 #include "RewriteApi/CFCFileApiParse.h"
+#include <QMessageBox>
 
 namespace Ui {
 class UploadFileItem;
@@ -24,9 +25,13 @@ private slots:
     void on_pushButton_switch_clicked();
     void on_pushButton_cancel_clicked();
 
+    void on_pushButton_Reset_clicked();
+
 signals:
     void sigUploadState(const QString &path, bool running);
     void sigCancel(const QString &path);
+
+    void sigReset(const QString &from, const QString &to);
 private:
     Ui::UploadFileItem *ui;
 

@@ -1,4 +1,4 @@
-#include "RemoteFileManageApi.h"
+﻿#include "RemoteFileManageApi.h"
 #include "RewriteApi/CFCFileApiParse.h"
 #include "RewriteApi/GoStr.h"
 #include <QDir>
@@ -26,9 +26,10 @@ bool RemoteFileManageApi::open(const QString &path)
 {
     if(m_fc <= 0) return false;
     GoStr p(path);
-    QSharedPointer<char> msg(ReadRemoteFileContext(m_fc, p.getGoString(), 0, 100, 3000));
+    QSharedPointer<char> msg(ReadRemoteFileContext(m_fc, p.getGoString(), 0, 1000, 3000));
     QByteArray arr = QByteArray::fromBase64(msg.data());
-    QString encodeMsg = QString::fromLatin1(arr.data());
+    QString encodeMsg = QString::fromUtf8(arr.data());
+
 
     Q_UNUSED(encodeMsg);
 
@@ -106,7 +107,7 @@ void RemoteFileManageApi::readerDir(const QByteArray &json, QStandardItemModel *
 
     bool ok = CFCFileApiParse::fileContext(json, fileContext);
     if(!ok) {
-        QMessageBox::information(nullptr, "情况", fileContext.error);
+//        QMessageBox::information(nullptr, "情况", fileContext.error);
         return;
     }
 
@@ -120,7 +121,21 @@ void RemoteFileManageApi::readerDir(const QByteArray &json, QStandardItemModel *
     if(!model) return;
     model->setRowCount(0);
     QStandardItem *item = nullptr;
-    for(int i = 0; i < fileContext.fileList.size(); i++) {
+
+    int i = 0;
+    if(curPath != "/") {
+        item = new QStandardItem(QIcon(":/png/dir.png"), "..");
+        model->setItem(0, 0, item);
+        item = new QStandardItem();
+        model->setItem(0, 1, item);
+        item = new QStandardItem();
+        model->setItem(0, 2, item);
+        item = new QStandardItem();
+        model->setItem(0, 3, item);
+        ++i;
+    }
+
+    for(;i < fileContext.fileList.size(); i++) {
         const FileContext::File &info = fileContext.fileList.at(i);
         if(info.name == "." || info.name == "..") continue;
 

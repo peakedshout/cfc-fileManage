@@ -6,6 +6,13 @@ CONFIG(release, debug|release) {
     BUILD_TYPE = release
 }
 
+msvc {
+    QMAKE_CFLAGS += /utf-8
+    QMAKE_CXXFLAGS += /utf-8
+}
+
+
+
 OBJECTS_DIR = $$BUILD_TYPE/obj
 MOC_DIR     = $$BUILD_TYPE/moc
 RCC_DIR     = $$BUILD_TYPE/rcc

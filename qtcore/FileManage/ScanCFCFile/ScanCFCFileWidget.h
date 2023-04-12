@@ -1,29 +1,33 @@
-#ifndef SCANCFCFILEWIDGET_H
+﻿#ifndef SCANCFCFILEWIDGET_H
 #define SCANCFCFILEWIDGET_H
 
-#include <QWidget>
+#include <QDialog>
 #include <QFileDialog>
 #include <QStringListModel>
+#include "SessionMsg/SessionMsg.h"
+
+extern SessionMsg giv_SessionMsg;
 
 namespace Ui {
 class ScanCFCFileWidget;
 }
 
-class ScanCFCFileWidget : public QWidget
+class ScanCFCFileWidget : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit ScanCFCFileWidget(int fc, QWidget *parent = nullptr);
-    ScanCFCFileWidget(int fc, const QString &path, QWidget *parent = nullptr);
+    explicit ScanCFCFileWidget(int fc, const QString &path, QWidget *parent = nullptr);
     ~ScanCFCFileWidget();
 
     void setScanPath(const QString &path);
 
+    void setfc(int fc);
+    void on_pushButton_Scan_clicked();
 private slots:
     void on_pushButton_SeleteDir_clicked();
 
-    void on_pushButton_Scan_clicked();
+
 
     void on_pushButton_AddList_clicked();
 

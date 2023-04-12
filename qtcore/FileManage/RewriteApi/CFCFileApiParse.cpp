@@ -1,4 +1,4 @@
-#include "CFCFileApiParse.h"
+﻿#include "CFCFileApiParse.h"
 
 CFCFileApiParse::CFCFileApiParse()
 {

@@ -1,4 +1,4 @@
-#include "AsycDownloadFile.h"
+﻿#include "AsycDownloadFile.h"
 #include "RewriteApi/GoStr.h"
 
 AsycDownloadFile::AsycDownloadFile(int fc, QString path, bool existBuff, QObject *parent)
@@ -26,6 +26,11 @@ void AsycDownloadFile::run()
 {
     GoStr path(m_Path.toUtf8());
     QSharedPointer<char> msg(DownRemoteFileContextToStartDown(m_fc, path.getGoString(), !m_ExistBuff));
+
+    m_ExistBuff = true;
+    if(QString(msg.data()).contains("serverName is inconsistency") || QString(msg.data()).contains("userName is inconsistency")) {
+        emit sigDebug(QString("%1任务无法导入").arg(m_Path), m_Path);
+    }
 
     debugMsg(msg.data());
 

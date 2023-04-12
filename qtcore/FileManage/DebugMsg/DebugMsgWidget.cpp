@@ -1,4 +1,4 @@
-#include "DebugMsgWidget.h"
+﻿#include "DebugMsgWidget.h"
 #include "ui_DebugMsgWidget.h"
 
 DebugMsgWidget::DebugMsgWidget(QWidget *parent) :
@@ -45,6 +45,5 @@ void DebugMsgWidget::on_pushButton_StartAndPause_clicked()
     } else {
         ui->pushButton_StartAndPause->setText("开始");
     }
-
 }
 

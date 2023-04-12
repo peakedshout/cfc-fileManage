@@ -1,4 +1,4 @@
-#include "UploadFileItem.h"
+﻿#include "UploadFileItem.h"
 #include "ui_UploadFileItem.h"
 
 UploadFileItem::UploadFileItem(QWidget *parent) :
@@ -17,6 +17,8 @@ UploadFileItem::~UploadFileItem()
 
 void UploadFileItem::slotDownloadProgress(ProgressContext progressInfo, bool finished)
 {
+    if(!m_BtnState) return;
+
     if(finished) {
         ui->progressBar->setMaximum(100);
         ui->progressBar->setValue(100);
@@ -82,7 +84,30 @@ void UploadFileItem::on_pushButton_switch_clicked()
 
 void UploadFileItem::on_pushButton_cancel_clicked()
 {
+
+    if(ui->pushButton_switch->text() != "已完成") {
+        int btn = QMessageBox::information(this, "上传任务", "任务未完成，是否取消", QMessageBox::Ok | QMessageBox::No, QMessageBox::No);
+        if(btn != QMessageBox::Ok) {
+            return;
+        }
+    }
+
     ui->label_speed->setText("0.00B/s");
     emit sigCancel(ui->label_fileFrom->text());
+}
+
+
+void UploadFileItem::on_pushButton_Reset_clicked()
+{
+    m_BtnState = false;
+    slotBtnState(m_BtnState);
+
+    ui->label_speed->setText("0.00B/s");
+    ui->progressBar->setMaximum(100);
+    ui->progressBar->setValue(0);
+
+    ui->label_speed->setText(tr("上传重置"));
+    ui->pushButton_switch->setEnabled(true);
+    emit sigReset(ui->label_fileFrom->text(), ui->label_name->text());
 }
 

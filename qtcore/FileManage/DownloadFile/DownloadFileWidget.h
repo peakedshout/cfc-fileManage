@@ -1,4 +1,4 @@
-#ifndef DOWNLOADFILEWIDGET_H
+﻿#ifndef DOWNLOADFILEWIDGET_H
 #define DOWNLOADFILEWIDGET_H
 
 #include <QWidget>
@@ -15,9 +15,9 @@
 
 extern SessionMsg giv_SessionMsg;
 
-//#define DEBUG
+//#define DOWNLOADFILEWIDGET_DEBUG
 
-#ifdef DEBUG
+#ifdef DOWNLOADFILEWIDGET_DEBUG
 #include <QDebug>
 #define debugMsg(msg) qDebug()<< "-----------------[Debug]-----------------\nFile: " << __FILE__ << "\nFunc: " << __FUNCTION__ << "\nLine: " << __LINE__ << "\n--[Msg]--> " << msg << "\n-----------------[Debug/]-----------------\n"
 #else
@@ -36,7 +36,7 @@ public:
     explicit DownloadFileWidget(int fc, const QString &serverName, QWidget *parent = nullptr);
     ~DownloadFileWidget();
 
-
+    void setfc(int fc);
 private:
     bool createDownloadTask(QString path, bool buff);
     void createItemAndProgressTask(QString path);
@@ -48,12 +48,15 @@ public slots:
     void slotServerPath(const QString &path);
     void slotDownloadFilesInfo(const QMap<QString, QString> &paths);
 
+    void slotAddDownloadFiles(const QStringList &downloadFiles);
+
 private slots:
     void on_pushButton_Cancel_clicked();
 
     void on_pushButton_Download_clicked();
 
     void slotCancel(QString path);
+    void slotReset(QString from, QString to);
 
     void slotDownloadState(QString path, bool running);
 
@@ -66,7 +69,7 @@ private slots:
 private:
     Ui::DownloadFileWidget *ui;
     int m_fc;
-    QString m_ServerName;
+    QString m_ClientName;
 
     QString m_ClientPath;
     QString m_ServerPath;

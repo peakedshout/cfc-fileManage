@@ -192,6 +192,19 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="pushButton_Reset">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>重置</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="pushButton_cancel">
        <property name="text">
         <string>取消</string>

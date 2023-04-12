@@ -1,15 +1,16 @@
-#include "RemoteFileManageMainWin.h"
+﻿#include "RemoteFileManageMainWin.h"
 #include "ui_RemoteFileManageMainWin.h"
 #include "RewriteApi/GoStr.h"
+#include "AsycTask/AsycReadFile.h"
 
-RemoteFileManageMainWin::RemoteFileManageMainWin(int fc, const QString &serverName, const QString &currPath, QWidget *parent) :
+RemoteFileManageMainWin::RemoteFileManageMainWin(int fc, const QString &clientName, const QString &currPath, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::RemoteFileManageMainWin)
 {
     ui->setupUi(this);
 
     if(fc <= 0) return;
-    m_ServerName = serverName;
+    m_ClientName = clientName;
 
     m_RightClickMenu = nullptr;
     m_ActionPaste = nullptr;
@@ -19,8 +20,7 @@ RemoteFileManageMainWin::RemoteFileManageMainWin(int fc, const QString &serverNa
     m_ActionRefresh = nullptr;
     m_ActionOpen = nullptr;
     m_ActionRename = nullptr;
-    m_UploadFileWidget = nullptr;
-    m_DownloadFileWidget = nullptr;
+    m_FileOperation = nullptr;
     m_Model = nullptr;
     m_LabelMsg = nullptr;
     m_DelayMsg = nullptr;
@@ -29,15 +29,17 @@ RemoteFileManageMainWin::RemoteFileManageMainWin(int fc, const QString &serverNa
     m_AsycNetStatus = nullptr;
     m_SessionMsgDialog = nullptr;
     m_DebugMsgWidget = nullptr;
-
+    m_ScanCFCFileWidget = nullptr;
+    m_CountDown = nullptr;
     m_fc = fc;
+    m_ISExit_C = true;
 
     // statusBar
     m_LabelMsg = new QLabel(" 请选择项目");
     ui->statusbar->addWidget(m_LabelMsg, 4);
 
     QLabel *l = new QLabel();
-    l->setPixmap(QPixmap(":/png/upspeed.png").scaled(20,20));
+    l->setPixmap(QPixmap(":/png/up.png").scaled(20,20));
     l->setAlignment(Qt::AlignCenter);
     l->setFixedWidth(20);
     ui->statusbar->addPermanentWidget(l);
@@ -48,7 +50,7 @@ RemoteFileManageMainWin::RemoteFileManageMainWin(int fc, const QString &serverNa
     ui->statusbar->addPermanentWidget(m_UpSpeedMsg, 1);
 
     l = new QLabel();
-    l->setPixmap(QPixmap(":/png/downloadSpeed.png").scaled(20,20));
+    l->setPixmap(QPixmap(":/png/down.png").scaled(20,20));
     l->setAlignment(Qt::AlignCenter);
     l->setFixedWidth(20);
     ui->statusbar->addPermanentWidget(l);
@@ -71,8 +73,6 @@ RemoteFileManageMainWin::RemoteFileManageMainWin(int fc, const QString &serverNa
 
     ui->statusbar->setSizeGripEnabled(false); //不显示右下角拖放控制点
 
-
-
     m_Model = new QStandardItemModel(ui->tableView);
     ui->tableView->setModel(m_Model);
 
@@ -92,10 +92,12 @@ RemoteFileManageMainWin::RemoteFileManageMainWin(int fc, const QString &serverNa
     ui->tableView->setPath(currPath);
     m_RemoteFileManageApi.setFC(m_fc);
 
+
+
     createContextMenu();
 
     // 创建menu--Actions
-    m_ActionsStr << "上一级目录" << "刷新" << "打开" << "复制" << "粘贴" << "剪切" << "删除" <<"重命名"<< "下载" << "用户信息" << "打印信息";
+    m_ActionsStr << "上一级目录" << "刷新" << "打开" << "复制" << "粘贴" << "剪切" << "删除" <<"重命名"<< "下载" << "扫描" << "用户信息";
 
     for(auto &var : m_ActionsStr) {
         ui->menubar->addAction(var);
@@ -131,17 +133,19 @@ RemoteFileManageMainWin::RemoteFileManageMainWin(int fc, const QString &serverNa
                 if(QDir::cleanPath(url.toLocalFile()) != fileP) {
                     m_RemoteFileManageApi.move(url.toLocalFile(), fileP);
                 }
+
             }
         }
         if(copy) {
-            if(!m_UploadFileWidget) {
-                m_UploadFileWidget = new UploadFileWidget(m_fc, m_ServerName);
-                connect(m_UploadFileWidget, &UploadFileWidget::sigUploadFinished, this, &RemoteFileManageMainWin::slotRefresh);
+            if(!m_FileOperation) {
+                m_FileOperation = new FileOperation(m_fc, m_ClientName);
+                connect(m_FileOperation, &FileOperation::sigUploadFinished, this, &RemoteFileManageMainWin::slotRefresh);
+                connect(m_FileOperation, &FileOperation::sigScanFiles, this, &RemoteFileManageMainWin::slotScanDialogOpen);
             }
-            m_UploadFileWidget->slotClientPath("");
-            m_UploadFileWidget->slotServerPath(ui->lineEdit->text());
-            m_UploadFileWidget->slotUploadFilesInfo(paths, true);
-            m_UploadFileWidget->on_pushButton_Upload_clicked();
+            m_FileOperation->slotClientPath("");
+            m_FileOperation->slotServerPath(ui->lineEdit->text());
+            m_FileOperation->slotUploadFilesInfo(paths, true);
+            m_FileOperation->slotUploadClicked();
         }
 
         slotRefresh();
@@ -165,15 +169,22 @@ RemoteFileManageMainWin::RemoteFileManageMainWin(int fc, const QString &serverNa
     slotRunNetStatus();
 
     slotRefresh();
+
+    m_SDReConn = false;
 }
 
 RemoteFileManageMainWin::~RemoteFileManageMainWin()
 {
-    if(m_DownloadFileWidget) {
-        delete m_DownloadFileWidget;
+    if(m_CountDown) {
+        m_CountDown->deleteLater();
     }
-    if(m_UploadFileWidget) {
-        delete m_UploadFileWidget;
+
+    if(m_FileOperation) {
+        m_FileOperation->deleteLater();
+    }
+
+    if(m_FileOperation) {
+        delete m_FileOperation;
     }
 
     if(m_AsycNetStatus) {
@@ -184,11 +195,41 @@ RemoteFileManageMainWin::~RemoteFileManageMainWin()
         m_DebugMsgWidget->deleteLater();
     }
 
+    if(m_ScanCFCFileWidget) {
+        m_ScanCFCFileWidget->deleteLater();
+    }
+
     if(m_fc > 0) {
         CloseFileContext(m_fc);
     }
 
+
     delete ui;
+}
+
+void RemoteFileManageMainWin::setfc(int fc)
+{
+    m_fc = fc;
+    flag = false;
+    m_ISExit_C = true;
+
+//    slotRefresh();
+    m_RemoteFileManageApi.setFC(m_fc);
+    if(m_FileOperation) m_FileOperation->setfc(m_fc);
+    if(m_AsycNetStatus) m_AsycNetStatus->setfc(m_fc);
+    if(m_ScanCFCFileWidget) m_ScanCFCFileWidget->setfc(m_fc);
+//    if(m_CountDown) {
+//        QMetaObject::invokeMethod(m_CountDown, "hide", Qt::QueuedConnection);
+//        m_CountDown->hide();
+//    }
+
+
+    if(m_SDReConn) {
+        m_SDReConn = false;
+        QMessageBox::information(this, "重连信息", "重新连接成功");
+    }
+//    slotRefresh();
+    QMetaObject::invokeMethod(this, "slotRefresh", Qt::QueuedConnection);
 }
 
 void RemoteFileManageMainWin::on_pushButton_Search_clicked()
@@ -210,7 +251,7 @@ void RemoteFileManageMainWin::slotActionTriggered(QAction *action)
     QString name = action->text();
     if(!m_ActionsStr.contains(name)) return;
 //    m_ActionsStr << "上一级目录" << "刷新" << "打开" << "复制" << "粘贴"
-//            << "剪切" << "删除" <<"重命名"<< "下载" << "用户信息" << "打印信息";
+//            << "剪切" << "删除" <<"重命名"<< "下载"  << "扫描" << "用户信息" << "打印信息" << "重连";
 
     debugMsg(name);
     if(name == m_ActionsStr.at(0)) {
@@ -241,10 +282,15 @@ void RemoteFileManageMainWin::slotActionTriggered(QAction *action)
         // 下载
         slotDownload();
     } else if(name == m_ActionsStr.at(9)) {
+        //  << "扫描"
+        slotScanDialogOpen();
+    } else if(name == m_ActionsStr.at(10)) {
         // 用户信息
         slotSessionMsgDialogOpen();
-    }
-    else if(name == m_ActionsStr.at(10)) {
+    }  else if(name == m_ActionsStr.at(11)) {
+        // 重连
+        pushButtonReConn_clicked();
+    } else if(name == m_ActionsStr.at(12)) {
         // 打印信息
         slotDebugWidgetOpen();
     }
@@ -276,6 +322,7 @@ void RemoteFileManageMainWin::slotParentDir()
 
 void RemoteFileManageMainWin::slotRefresh()
 {
+    flag = true;
     QString curPath;
     m_RemoteFileManageApi.readerDir(ui->lineEdit->text(), m_Model, curPath);
     ui->lineEdit->setText(curPath);
@@ -290,11 +337,15 @@ void RemoteFileManageMainWin::slotOpen()
     int row = ui->tableView->currentIndex().row();
     QModelIndex typeIndex = m_Model->index(row, 2);
     QModelIndex nameIndex = m_Model->index(row, 0);
-
+    QString name(nameIndex.data().toString());
+    if(name == "..") {
+        slotParentDir();
+        return;
+    }
     QString p = ui->lineEdit->text();
     if(p == "/") p = "";
 
-    QString path = QDir::cleanPath(p + QDir::separator() + nameIndex.data().toString());
+    QString path = QDir::cleanPath(p + QDir::separator() + name);
 
     if(typeIndex.data().toString() == "文件夹") {
 
@@ -305,10 +356,60 @@ void RemoteFileManageMainWin::slotOpen()
 
         emit sigDebugMsg(QString("[打开文件夹]：%1").arg(path));
     } else {
+
 //        m_RemoteFileManageApi.open(path);
         QMessageBox::information(this, "未完成", "待开发");
-//        emit sigDebugMsg(QString("[打开文件]：%1").arg(path));
+        return;
+
+
+        QModelIndex sizeIndex = m_Model->index(row, 3);
+        QString sizeStr = sizeIndex.data().toString();
+
+        emit sigDebugMsg(QString("[打开文件]：%1").arg(path));
+
+
+        QDialog dialog;
+        dialog.resize(600, 500);
+        dialog.setWindowTitle("浏览");
+        dialog.setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
+        float size = 0;
+
+        if(sizeStr.contains("KB")) {
+            sizeStr.remove("KB");
+            size = sizeStr.toFloat()*1024;
+        } else if(sizeStr.contains("MB")) {
+            sizeStr.remove("MB");
+            size = sizeStr.toFloat()*1024*1024;
+        } else if(sizeStr.contains("GB")) {
+            sizeStr.remove("GB");
+            size = sizeStr.toFloat()*1024*1024*1024;
+        } else if(sizeStr.contains("B")) {
+            sizeStr.remove("B");
+            size = sizeStr.toFloat();
+        } else {
+            size = sizeStr.toFloat();
+        }
+
+        QPlainTextEdit textEdit;
+        textEdit.setReadOnly(true);
+        QFont font = this->font();
+        font.setPointSize(12);
+        textEdit.setFont(font);
+
+
+        AsycReadFile *task = new AsycReadFile(m_fc, path, 0, size);
+        connect(task, &AsycReadFile::sigText, &textEdit, &QPlainTextEdit::appendPlainText);
+
+        QThreadPool::globalInstance()->start(task);
+
+        QHBoxLayout HBoxLayout(&dialog);
+        HBoxLayout.addWidget(&textEdit);
+
+        dialog.exec();
+
+
     }
+
 }
 
 void RemoteFileManageMainWin::slotCopy()
@@ -392,22 +493,48 @@ void RemoteFileManageMainWin::slotRename()
 
 void RemoteFileManageMainWin::slotUpload(const QMap<QString, QString> &uploadFiles, const QString &clientPath)
 {
-    if(!m_UploadFileWidget) {
-        m_UploadFileWidget = new UploadFileWidget(m_fc, m_ServerName);
-        connect(m_UploadFileWidget, &UploadFileWidget::sigUploadFinished, this, &RemoteFileManageMainWin::slotRefresh);
+    if(!m_FileOperation) {
+        m_FileOperation = new FileOperation(m_fc, m_ClientName);
+        connect(m_FileOperation, &FileOperation::sigUploadFinished, this, &RemoteFileManageMainWin::slotRefresh);
+        connect(m_FileOperation, &FileOperation::sigScanFiles, this, &RemoteFileManageMainWin::slotScanDialogOpen);
     }
 
-    m_UploadFileWidget->slotClientPath(clientPath);
-    m_UploadFileWidget->slotServerPath(ui->lineEdit->text());
-    m_UploadFileWidget->slotUploadFilesInfo(uploadFiles);
+    m_FileOperation->slotClientPath(clientPath);
+    m_FileOperation->slotServerPath(ui->lineEdit->text());
+    m_FileOperation->slotUploadFilesInfo(uploadFiles);
 
-    m_UploadFileWidget->show();
+    m_FileOperation->exec();
+
+}
+
+void RemoteFileManageMainWin::slotAddDownloadFiles(const QStringList &list)
+{
+    if(!m_FileOperation) {
+        m_FileOperation = new FileOperation(m_fc, m_ClientName);
+        connect(m_FileOperation, &FileOperation::sigUploadFinished, this, &RemoteFileManageMainWin::slotRefresh);
+        connect(m_FileOperation, &FileOperation::sigScanFiles, this, &RemoteFileManageMainWin::slotScanDialogOpen);
+    }
+    m_FileOperation->slotAddDownloadFiles(list);
+    m_FileOperation->exec();
+}
+
+void RemoteFileManageMainWin::slotAddUploadFiles(const QStringList &list)
+{
+    if(!m_FileOperation) {
+        m_FileOperation = new FileOperation(m_fc, m_ClientName);
+        connect(m_FileOperation, &FileOperation::sigUploadFinished, this, &RemoteFileManageMainWin::slotRefresh);
+        connect(m_FileOperation, &FileOperation::sigScanFiles, this, &RemoteFileManageMainWin::slotScanDialogOpen);
+    }
+    m_FileOperation->slotAddUploadFiles(list);
+    m_FileOperation->exec();
 }
 
 void RemoteFileManageMainWin::slotDownload()
 {
-    if(!m_DownloadFileWidget) {
-        m_DownloadFileWidget = new DownloadFileWidget(m_fc, m_ServerName);
+    if(!m_FileOperation) {
+        m_FileOperation = new FileOperation(m_fc, m_ClientName);
+        connect(m_FileOperation, &FileOperation::sigUploadFinished, this, &RemoteFileManageMainWin::slotRefresh);
+        connect(m_FileOperation, &FileOperation::sigScanFiles, this, &RemoteFileManageMainWin::slotScanDialogOpen);
     }
 
     QModelIndexList names = ui->tableView->selectionModel()->selectedRows();
@@ -426,13 +553,13 @@ void RemoteFileManageMainWin::slotDownload()
         }
     }
 
-    QString p = giv_SessionMsg.sessions.value(m_ServerName).savePath;
-    m_DownloadFileWidget->slotClientPath(p);
-    m_DownloadFileWidget->slotServerPath(p);
-    m_DownloadFileWidget->slotDownloadFilesInfo(downloadFiles);
+    QString p = giv_SessionMsg.sessions.value(m_ClientName).savePath;
+    m_FileOperation->slotClientPath(p);
+    m_FileOperation->slotServerPath(p);
+    m_FileOperation->slotDownloadFilesInfo(downloadFiles);
 
     emit sigDebugMsg(tr("执行了下载操作"));
-    m_DownloadFileWidget->show();
+    m_FileOperation->exec();
 }
 
 // 选择的信息
@@ -481,6 +608,7 @@ void RemoteFileManageMainWin::slotRunNetStatus()
 {
     if(!m_AsycNetStatus) {
         m_AsycNetStatus = new AsycNetStatus(m_fc);
+
         if(m_DelayMsg) {
             connect(m_AsycNetStatus, &AsycNetStatus::sigDelay, this, [this](QString delay){
                 m_DelayMsg->setText(delay);
@@ -489,7 +617,7 @@ void RemoteFileManageMainWin::slotRunNetStatus()
         }
 
         if(m_UpSpeedMsg && m_DownSpeedMsg) {
-            connect(m_AsycNetStatus, &AsycNetStatus::sigNetworkSpeed, this, [this](quint64 uploadSpeed, QString uploadSpeedText, quint64 downloadSpeed, QString downloadSpeedText){
+            connect(m_AsycNetStatus, &AsycNetStatus::sigNetworkSpeed, this, [this](quint64 uploadSpeed, QString uploadSpeedText, quint64 downloadSpeed, QString downloadSpeedText, bool show){
                 Q_UNUSED(uploadSpeed);
                 Q_UNUSED(downloadSpeed);
                 m_UpSpeedMsg->setText(uploadSpeedText);
@@ -497,25 +625,78 @@ void RemoteFileManageMainWin::slotRunNetStatus()
 
                 m_DownSpeedMsg->setText(downloadSpeedText);
                 m_DownSpeedMsg->setToolTip("下载：" + downloadSpeedText);
+
+                if(show && m_CountDown) {
+                    m_CountDown->hide();
+                }
             });
         }
 
         if(!m_SessionMsgDialog) {
-            m_SessionMsgDialog = new SessionMsgDialog(m_ServerName, this);
+            m_SessionMsgDialog = new SessionMsgDialog(m_ClientName, this);
             connect(m_SessionMsgDialog, &SessionMsgDialog::sigQuit, this, &RemoteFileManageMainWin::sigQuit);
             connect(m_SessionMsgDialog, &SessionMsgDialog::sigCreate, this, &RemoteFileManageMainWin::sigCreate);
         }
         connect(m_AsycNetStatus, &AsycNetStatus::sigMemoryCapacity, m_SessionMsgDialog, &SessionMsgDialog::slotMemoryCapacity);
+
+        if(!m_CountDown) {
+            m_CountDown = new CountDown(ui->tableView);
+            m_CountDown->hide();
+            connect(m_CountDown, &CountDown::sigReConnection, this, &RemoteFileManageMainWin::pushButtonReConn_clicked);
+            connect(m_CountDown, &CountDown::sigNoReConn, m_AsycNetStatus, &AsycNetStatus::slotNoReConn);
+        }
+
+//        m_AsycNetStatus->setCountDown(m_CountDown);
+
+        connect(m_AsycNetStatus, &AsycNetStatus::sigReConnection, this, [this](int num, bool isExit_C, bool vaild){
+
+            if(!flag) {
+                flag = true;
+                return;
+            }
+            m_CountDown->setGeometry(ui->tableView->geometry());
+            m_CountDown->show();
+            m_CountDown->slotLCDNum(num);
+
+            m_Model->setRowCount(0);
+
+            m_ISExit_C = isExit_C;
+            if(vaild) {
+                emit sigReConnection(isExit_C);
+            }
+        });
+
+
     }
 
     QThreadPool::globalInstance()->start(m_AsycNetStatus);
 
 }
 
+void RemoteFileManageMainWin::slotScanDialogOpen()
+{
+    if(!m_ScanCFCFileWidget) {
+        m_ScanCFCFileWidget = new ScanCFCFileWidget(m_fc, giv_SessionMsg.sessions.value(m_ClientName).scanPath);
+
+        if(!m_FileOperation) {
+            m_FileOperation = new FileOperation(m_fc, m_ClientName);
+            connect(m_FileOperation, &FileOperation::sigUploadFinished, this, &RemoteFileManageMainWin::slotRefresh);
+            connect(m_FileOperation, &FileOperation::sigScanFiles, this, &RemoteFileManageMainWin::slotScanDialogOpen);
+        }
+        connect(m_ScanCFCFileWidget, &ScanCFCFileWidget::sigScanDownFiles, m_FileOperation, &FileOperation::slotAddDownloadFiles);
+        connect(m_ScanCFCFileWidget, &ScanCFCFileWidget::sigScanUpFiles, m_FileOperation, &FileOperation::slotAddUploadFiles);
+    }
+
+    m_ScanCFCFileWidget->on_pushButton_Scan_clicked();
+    m_ScanCFCFileWidget->exec();
+//    m_ScanCFCFileWidget->activateWindow();
+
+}
+
 void RemoteFileManageMainWin::slotSessionMsgDialogOpen()
 {
     if(!m_SessionMsgDialog) {
-        m_SessionMsgDialog = new SessionMsgDialog(m_ServerName, this);
+        m_SessionMsgDialog = new SessionMsgDialog(m_ClientName, this);
 
         connect(m_SessionMsgDialog, &SessionMsgDialog::sigQuit, this, &RemoteFileManageMainWin::sigQuit);
         connect(m_SessionMsgDialog, &SessionMsgDialog::sigCreate, this, &RemoteFileManageMainWin::sigCreate);
@@ -533,6 +714,7 @@ void RemoteFileManageMainWin::slotDebugWidgetOpen()
     }
 
     m_DebugMsgWidget->show();
+    m_DebugMsgWidget->activateWindow();
 }
 
 // 创建菜单
@@ -549,7 +731,27 @@ void RemoteFileManageMainWin::createContextMenu()
     m_ActionDelete = m_RightClickMenu->addAction("删除", this, SLOT(slotDelete()));
 }
 
+void RemoteFileManageMainWin::slotFileOperationOpen()
+{
+    if(!m_FileOperation) {
+        m_FileOperation = new FileOperation(m_fc, m_ClientName);
+        connect(m_FileOperation, &FileOperation::sigUploadFinished, this, &RemoteFileManageMainWin::slotRefresh);
+        connect(m_FileOperation, &FileOperation::sigScanFiles, this, &RemoteFileManageMainWin::slotScanDialogOpen);
+    }
+
+    m_FileOperation->exec();
+}
 
 
+void RemoteFileManageMainWin::pushButtonReConn_clicked()
+{
+    m_SDReConn = true;
+    emit sigReConnection(m_ISExit_C);
+}
 
+
+void RemoteFileManageMainWin::pushButton_fq_clicked()
+{
+    emit sigNoReConn();
+}
 

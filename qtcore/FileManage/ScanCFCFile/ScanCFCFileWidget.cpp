@@ -1,30 +1,13 @@
-#include "ScanCFCFileWidget.h"
+﻿#include "ScanCFCFileWidget.h"
 #include "ui_ScanCFCFileWidget.h"
 #include "RewriteApi/ScanCFCFile.h"
 
-ScanCFCFileWidget::ScanCFCFileWidget(int fc, QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::ScanCFCFileWidget)
-{
-    ui->setupUi(this);
-
-    m_fc = fc;
-
-    m_SeleteFilesModel = new QStringListModel(ui->listView);
-    ui->listView->setEditTriggers(QListView::NoEditTriggers);			//不能编辑
-    ui->listView->setSelectionBehavior(QListView::SelectRows);		//一次选中整行
-    ui->listView->setSelectionMode(QListView::ExtendedSelection);       //SingleSelection
-
-
-    ui->listView->setModel(m_SeleteFilesModel);
-}
-
 ScanCFCFileWidget::ScanCFCFileWidget(int fc, const QString &path, QWidget *parent) :
-    QWidget(parent),
+    QDialog(parent),
     ui(new Ui::ScanCFCFileWidget)
 {
     ui->setupUi(this);
-
+    this->setWindowTitle("扫描");
     m_fc = fc;
     ui->lineEdit->setText(path);
 
@@ -47,9 +30,14 @@ void ScanCFCFileWidget::setScanPath(const QString &path)
     ui->lineEdit->setText(path);
 }
 
+void ScanCFCFileWidget::setfc(int fc)
+{
+    m_fc = fc;
+}
+
 void ScanCFCFileWidget::on_pushButton_SeleteDir_clicked()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("扫描目录"), ui->lineEdit->text());
+    QString path = QFileDialog::getExistingDirectory(this, tr("扫描目录"), ui->lineEdit->text());
 
     if(path.isEmpty()) return;
 
@@ -86,6 +74,8 @@ void ScanCFCFileWidget::on_pushButton_AddList_clicked()
         }
     }
 
+    this->hide();
+
     if(!uploadFiles.isEmpty()) {
         emit sigScanUpFiles(uploadFiles);
     }
@@ -93,6 +83,7 @@ void ScanCFCFileWidget::on_pushButton_AddList_clicked()
     if(!downloadFiles.isEmpty()) {
         emit sigScanDownFiles(downloadFiles);
     }
+
 
 }
 

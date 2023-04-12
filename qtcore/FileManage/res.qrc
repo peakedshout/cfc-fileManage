@@ -48,8 +48,11 @@
         <file>png/zip.png</file>
         <file>png/File.png</file>
         <file>png/delay.png</file>
-        <file>png/downloadSpeed.png</file>
-        <file>png/upspeed.png</file>
-        <file>logo.ico</file>
+        <file>png/cfloge.png</file>
+        <file>png/down.png</file>
+        <file>png/up.png</file>
+        <file>png/yanjing_xianshi_o.png</file>
+        <file>png/yanjing_yincang_o.png</file>
+        <file>png/cfloge.ico</file>
     </qresource>
 </RCC>

@@ -1,4 +1,4 @@
-#include "AsycGetProgress.h"
+﻿#include "AsycGetProgress.h"
 #include "RewriteApi/GoStr.h"
 
 AsycGetProgress::AsycGetProgress(int fc, QString path, Type type, QObject *parent)
@@ -43,7 +43,6 @@ void AsycGetProgress::run()
     while(true)
     {
         if(m_Stop) return;
-        QThread::msleep(100);
 
 
         QSharedPointer<char> msg(TransmissionRemoteFileContextToGetProgress(m_fc, path.getGoString()));
@@ -81,6 +80,8 @@ void AsycGetProgress::run()
             break;
         }
 
+
+        QThread::msleep(100);
 
     }
 

@@ -1,17 +1,18 @@
-#ifndef REMOTEFILEMANAGEAPI_H
+﻿#ifndef REMOTEFILEMANAGEAPI_H
 #define REMOTEFILEMANAGEAPI_H
 
 #include "VirtualFileManageApi.h"
 
 
-//#define DEBUG
+//#define REMOTEFILEMANAGEAPI_DEBUG
 
-#ifdef DEBUG
+#ifdef REMOTEFILEMANAGEAPI_DEBUG
     #include <QDebug>
     #define debugMsg(msg) qDebug()<< "-----------------[Debug]-----------------\nFile: " << __FILE__ << "\nFunc: " << __FUNCTION__ << "\nLine: " << __LINE__ << "\n--[Msg]--> " << msg << "\n-----------------[Debug/]-----------------\n"
 #else
     #define debugMsg(msg)
 #endif
+
 
 
 class RemoteFileManageApi : public VirtualFileManageApi

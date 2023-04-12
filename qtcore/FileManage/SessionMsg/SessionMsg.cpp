@@ -1,4 +1,4 @@
-#include "SessionMsg.h"
+﻿#include "SessionMsg.h"
 #include "Encryption/AEC_Encryption.h"
 #include "System/SystemInfo.h"
 
@@ -48,6 +48,11 @@ void SessionMsg::readSessionMsg(const QString &path)
 
                 SessionInfo info;
 
+                if(infoObj.contains("clientName")) {
+                    info.clientName = infoObj.value("clientName").toString();
+                }
+
+
                 if(infoObj.contains("serverName")) {
                     info.serverName = infoObj.value("serverName").toString();
                 }
@@ -58,6 +63,18 @@ void SessionMsg::readSessionMsg(const QString &path)
 
                 if(infoObj.contains("port")) {
                     info.port = infoObj.value("port").toInt();
+                }
+
+                if(infoObj.contains("logLevel")) {
+                    info.logLevel = infoObj.value("logLevel").toInt();
+                }
+
+                if(infoObj.contains("useStack")) {
+                    info.useStack = infoObj.value("useStack").toBool();
+                }
+
+                if(infoObj.contains("logPort")) {
+                    info.logPort = infoObj.value("logPort").toInt();
                 }
 
                 if(infoObj.contains("sessions")) {
@@ -77,7 +94,7 @@ void SessionMsg::readSessionMsg(const QString &path)
                 }
 
                 if(infoObj.contains("fileKey")) {
-                    info.fileKey = infoObj.value("fileKey").toString();
+                    info.userKey = infoObj.value("fileKey").toString();
                 }
 
                 if(infoObj.contains("localPath")) {
@@ -92,7 +109,7 @@ void SessionMsg::readSessionMsg(const QString &path)
                     info.savePath = infoObj.value("savePath").toString();
                 }
 
-                sessions.insert(info.serverName, info);
+                sessions.insert(info.serverName + "-" + info.clientName, info);
             }
 
         }
@@ -102,10 +119,12 @@ void SessionMsg::readSessionMsg(const QString &path)
     if(prove.isEmpty()) {
         prove = SystemInfo::getBaseboardUuid();
     }
+
+    m_Sessions = sessions;
 }
 
 void SessionMsg::wirteSessionMsg(const QString &path)
-{
+{    
     QJsonObject jsonObj;
     jsonObj.insert("prove", prove);
     jsonObj.insert("width", width);
@@ -116,16 +135,21 @@ void SessionMsg::wirteSessionMsg(const QString &path)
     QList list = sessions.values();
     for(auto &var : list) {
         QJsonObject obj;
+        obj.insert("clientName", var.clientName);
         obj.insert("serverName", var.serverName);
         obj.insert("ip", var.ip);
         obj.insert("port", var.port);
+
+        obj.insert("logLevel", var.logLevel);
+        obj.insert("useStack", var.useStack);
+        obj.insert("logPort", var.logPort);
 
         obj.insert("sessions", var.sessions);
         obj.insert("uploadNum", var.uploadNum);
         obj.insert("downloadNum", var.downloadNum);
 
         obj.insert("key", var.key);
-        obj.insert("fileKey", var.fileKey);
+        obj.insert("fileKey", var.userKey);
         obj.insert("localPath", var.localPath);
         obj.insert("scanPath", var.scanPath);
         obj.insert("savePath", var.savePath);
@@ -153,25 +177,22 @@ void SessionMsg::wirteSessionMsg(const QString &path)
     file.close();
 }
 
-bool SessionMsg::operator==(const SessionMsg &msg)
+bool SessionMsg::equality()
 {
-    if(this->prove != msg.prove)
-        return false;
-
-    if(this->width != msg.width)
-        return false;
-
-    if(this->height != msg.height)
-        return false;
-
-    QList values = msg.sessions.values();
+    QList values = m_Sessions.values();
 
     QList values1 = sessions.values();
     if(values.size() != values1.size()) return false;
 
     int count = values.size();
     for(int i = 0; i < count; i++) {
-        if(values1.at(i).fileKey != values.at(i).fileKey)
+        if(values1.at(i).clientName != values.at(i).clientName)
+            return false;
+
+        if(values1.at(i).serverName != values.at(i).serverName)
+            return false;
+
+        if(values1.at(i).userKey != values.at(i).userKey)
             return false;
 
         if(values1.at(i).key != values.at(i).key)
@@ -181,6 +202,15 @@ bool SessionMsg::operator==(const SessionMsg &msg)
             return false;
 
         if(values1.at(i).port != values.at(i).port)
+            return false;
+
+        if(values1.at(i).logLevel != values.at(i).logLevel)
+            return false;
+
+        if(values1.at(i).useStack != values.at(i).useStack)
+            return false;
+
+        if(values1.at(i).logPort != values.at(i).logPort)
             return false;
 
         if(values1.at(i).sessions != values.at(i).sessions)
@@ -204,4 +234,16 @@ bool SessionMsg::operator==(const SessionMsg &msg)
 
     return true;
 
+}
+
+void SessionMsg::recover()
+{
+    sessions.clear();
+    sessions = m_Sessions;
+}
+
+void SessionMsg::save()
+{
+    m_Sessions.clear();
+    m_Sessions = sessions;
 }

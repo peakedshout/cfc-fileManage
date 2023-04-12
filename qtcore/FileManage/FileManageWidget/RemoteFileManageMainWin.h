@@ -1,4 +1,4 @@
-#ifndef REMOTEFILEMANAGEMAINWIN_H
+﻿#ifndef REMOTEFILEMANAGEMAINWIN_H
 #define REMOTEFILEMANAGEMAINWIN_H
 
 #include <QMainWindow>
@@ -6,20 +6,18 @@
 #include "FileManageApi/RemoteFileManageApi.h"
 #include <QInputDialog>
 #include <QDir>
-#include "UploadFile/UploadFileWidget.h"
-#include "DownloadFile/DownloadFileWidget.h"
+#include "FileOperation/FileOperation.h"
 #include "SessionMsg/SessionMsg.h"
 #include "AsycTask/AsycNetStatus.h"
 #include "SessionMsg/SessionMsgDialog.h"
 #include "DebugMsg/DebugMsgWidget.h"
+#include "ScanCFCFile/ScanCFCFileWidget.h"
+#include "ConnectServer/CountDown.h"
+//#define REMOTEFILEMANAGEMAINWIN_DEBUG
 
-//#define DEBUG
-
-#ifdef DEBUG
+#ifdef REMOTEFILEMANAGEMAINWIN_DEBUG
 #include <QDebug>
 #define debugMsg(msg) qDebug()<< "-----------------[Debug]-----------------\nFile: " << __FILE__ << "\nFunc: " << __FUNCTION__ << "\nLine: " << __LINE__ << "\n--[Msg]--> " << msg << "\n-----------------[Debug/]-----------------\n"
-#else
-#define debugMsg(msg)
 #endif
 
 
@@ -37,14 +35,22 @@ public:
     explicit RemoteFileManageMainWin(int fc, const QString &serverName, const QString &currPath, QWidget *parent = nullptr);
     ~RemoteFileManageMainWin();
 
+    void setfc(int fc);
 private:
     void createContextMenu();
 
+
+    void slotFileOperationOpen();
 public slots:
     /**
      * @brief 上传
      */
     void slotUpload(const QMap<QString, QString> &uploadFiles, const QString &clientPath);
+
+
+
+    void slotAddDownloadFiles(const QStringList &list);
+    void slotAddUploadFiles(const QStringList &list);
 
 private slots:
     void on_pushButton_Search_clicked();
@@ -110,18 +116,28 @@ private slots:
      */
     void slotRunNetStatus();
 
+    void slotScanDialogOpen();
+
     void slotSessionMsgDialogOpen();
 
     void slotDebugWidgetOpen();
+
+    void pushButtonReConn_clicked();
+
+    void pushButton_fq_clicked();
+
 signals:
     void sigDebugMsg(const QString &msg);
     void sigCreate();
     void sigQuit(const QString &name);
+    void sigNoReConn();
+    void sigReConnection(bool isExit_C);
+
 private:
     Ui::RemoteFileManageMainWin *ui;
 
     int m_fc;
-    QString m_ServerName;
+    QString m_ClientName;
 
     QMenu *m_RightClickMenu;
     QAction *m_ActionPaste;
@@ -139,10 +155,7 @@ private:
 
     QStandardItemModel *m_Model;
     RemoteFileManageApi m_RemoteFileManageApi;
-
-    UploadFileWidget *m_UploadFileWidget;
-    DownloadFileWidget *m_DownloadFileWidget;
-
+    FileOperation *m_FileOperation;
     QLabel *m_LabelMsg;
     QLabel *m_DelayMsg;
     QLabel *m_UpSpeedMsg;
@@ -153,6 +166,16 @@ private:
     SessionMsgDialog *m_SessionMsgDialog;
 
     DebugMsgWidget *m_DebugMsgWidget;
+
+    ScanCFCFileWidget *m_ScanCFCFileWidget;
+
+    CountDown *m_CountDown;
+
+    bool m_ISExit_C;
+    bool m_SDReConn;
+
+    bool flag = true;
+
 };
 
 #endif // REMOTEFILEMANAGEMAINWIN_H

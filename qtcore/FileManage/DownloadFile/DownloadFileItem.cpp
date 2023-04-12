@@ -1,4 +1,4 @@
-#include "DownloadFileItem.h"
+﻿#include "DownloadFileItem.h"
 #include "ui_DownloadFileItem.h"
 
 DownloadFileItem::DownloadFileItem(QWidget *parent) :
@@ -17,6 +17,8 @@ DownloadFileItem::~DownloadFileItem()
 
 void DownloadFileItem::slotDownloadProgress(ProgressContext progressInfo, bool finished)
 {
+    if(!m_BtnState) return;
+
     if(finished) {
         ui->progressBar->setMaximum(100);
         ui->progressBar->setValue(100);
@@ -24,6 +26,7 @@ void DownloadFileItem::slotDownloadProgress(ProgressContext progressInfo, bool f
         ui->pushButton_switch->setText("已完成");
         progressInfo.status = "DownStatusDownloadCompleted";
         ui->label_speed->setText("0.00B/s");
+
     } else {
         if("UpStatusUploadFailure" == progressInfo.status) {
             ui->label_speed->setText("0.00B/s");
@@ -92,7 +95,31 @@ void DownloadFileItem::on_pushButton_switch_clicked()
 
 void DownloadFileItem::on_pushButton_cancel_clicked()
 {
+    if(ui->pushButton_switch->text() != "已完成") {
+        int btn = QMessageBox::information(this, "下载任务", "任务未完成，是否取消", QMessageBox::Ok | QMessageBox::No, QMessageBox::No);
+        if(btn != QMessageBox::Ok) {
+            return;
+        }
+    }
+
     ui->label_speed->setText("0.00B/s");
     emit sigCancel(ui->label_name->text());
+}
+
+
+void DownloadFileItem::on_pushButton_ReDownload_clicked()
+{
+    m_BtnState = false;
+    slotBtnState(m_BtnState);
+
+    ui->label_speed->setText("0.00B/s");
+    ui->progressBar->setMaximum(100);
+    ui->progressBar->setValue(0);
+
+    ui->label_speed->setText(tr("下载重置"));
+    ui->pushButton_switch->setEnabled(true);
+    emit sigReset(ui->label_fileFrom->text(), ui->label_name->text());
+
+
 }
 

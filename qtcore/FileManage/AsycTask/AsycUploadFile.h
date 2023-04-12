@@ -1,13 +1,13 @@
-#ifndef ASYCUPLOADFILE_H
+﻿#ifndef ASYCUPLOADFILE_H
 #define ASYCUPLOADFILE_H
 
 #include <QObject>
 #include <QRunnable>
 #include <QThreadPool>
 
-//#define DEBUG
+//#define ASYCUPLOADFILE_DEBUG
 
-#ifdef DEBUG
+#ifdef ASYCUPLOADFILE_DEBUG
 #include <QDebug>
 #define debugMsg(msg) qDebug()<< "-----------------[Debug]-----------------\nFile: " << __FILE__ << "\nFunc: " << __FUNCTION__ << "\nLine: " << __LINE__ << "\n--[Msg]--> " << msg << "\n-----------------[Debug/]-----------------\n"
 #else
@@ -26,7 +26,7 @@ private:
     void run();
 
 signals:
-
+    void sigDebug(QString text, QString path);
 private:
     int m_fc;
     QString m_Path;
